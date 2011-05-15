@@ -1,13 +1,33 @@
-Folder Layout
-
+******Folder Layout
 doc - all usefull docs that we used, plus our own presentation
-src - Our final project in eclipse format
+mrbigplanet - Our final project in eclipse format.
+mrbigplanet/src - All project source should go here
 
-User folders: For temporary unfinished work... etc:
+
+******User folders: For temporary unfinished work... etc:
 
 Jag 
 Laura
 Scott
 Anil
 Sandeep
+
+
+
+****** Eclipse notes:
+
+--- Libraries required
+Python : Numpy, Scipy 
+OS : mrjob, boto-dist
+Optional:
+
+To add this mrbigplanet
+
+1) Open up your existing workspace
+2) Go to File->Import
+3) Select General->Existing projects into workspace
+4) Selet the mrbigplanet folder
+Do NOT select []copy project sinto workspace!!
+5) Click Finish
+6) Run the TBD by right clicking and selecting (python run).
 
