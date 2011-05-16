@@ -14,6 +14,9 @@ from math import sqrt
 from numpy import random
 from random import sample
 from random import seed
+from operator import itemgetter
+
+
 import csv
 
 '''
@@ -28,12 +31,21 @@ type =  nominal,ordinal, interval, nominal, ordinal, nominal, interval, interval
  
 '''
 
-def readFormattedData (fileName, delimiterIn):
+def collect(l, index):
+    #this returns a map that can be used to call index on.
+   return map(itemgetter(index), l)
+
+
+def readFormattedDataAsMap (fileName, delimiterIn, mapI = 0):
+    # This reads in as array, but assign an index to one of the map value
+    # so it is an array of  [a, data[a,b,c,d,e] ]
     rowData = []
     with open(fileName, 'rb') as f:
         reader = csv.reader(f, delimiter = delimiterIn, quoting=csv.QUOTE_NONE )
         for row in reader:
-            rowData.append( row ) 
+            
+            newRow = [ row[mapI], row]
+            rowData.append( newRow ) 
     return rowData;
     
 
@@ -49,26 +61,29 @@ def aggregateDataForBDD(dataObs, userInfo, itemInfo):
         
         
         
-        userId = dataRecord[0]
-        itemId = dataRecord[1]
-        rating = dataRecord[2]
-        timestamp = dataRecord[3]
+        userId = dataRecord[1][0]
+        itemId = dataRecord[1][1]
+        rating = dataRecord[1][2]
+        timestamp = dataRecord[1][3]
         
-        
-        iU = userInfo.index(userId)
-        iI = itemInfo.index(itemId)
+        iU = collect(userInfo,0).index(userId)   # = 1
+        iI = collect(itemInfo,0).index(itemId)   # = 1
+
+        #iU = [for y in userInfo].index(1,0)
+        #iI = itemInfo.index(itemId)
         
         recordBDD = []
-        recordBDD[0] = userId
-        recordBDD[1] = timestamp
-        recordBDD[1] = userInfo[iU][1] #age
-        recordBDD[2] = userInfo[iU][2] #gender
-        recordBDD[3] = userInfo[iU][3] #occupation
-        recordBDD[4] = userInfo[iU][4] #zip
-        recordBDD[5] = 0;
+        recordBDD.insert(0, long ( userId)  )
+        recordBDD.insert(1, long ( timestamp ) )
+        recordBDD.insert(2, long ( userInfo[iU][1][1] ) )#age
+        recordBDD.insert(3, userInfo[iU][1][2] )#gender
+        recordBDD.insert(4, userInfo[iU][1][3] )#occupation
+        recordBDD.insert(5, userInfo[iU][1][4]  )#zip, note postal codes are included.
+        recordBDD.insert(6, long (0) ) #movie
+        recordBDD.insert(7, float ( rating) ) #rating
         
         for j in range(18) :        
-            recordBDD[5] += itemInfo[iI][7+j] * 2^j 
+            recordBDD[6] += long ( itemInfo[iI][1][5+j] ) * pow(2,j) 
             
         dataBDD.append(recordBDD)
         
@@ -102,7 +117,7 @@ def main():
     #1. Read main observations.
     userDataFilePath = './data/100K/ml-data/u.data'
     delimiter = '\t'
-    dataObs = readFormattedData(userDataFilePath, delimiter)
+    dataObs = readFormattedDataAsMap(userDataFilePath, delimiter)
      
     #2.  Do selection of data
     numPts = 1000
@@ -112,11 +127,11 @@ def main():
     #3.  Aggregate the data from relevant files
     userDataFilePath = './data/100K/ml-data/u.user'
     delimiter = '|'
-    userInfo = readFormattedData(userDataFilePath, delimiter)
+    userInfo = readFormattedDataAsMap(userDataFilePath, delimiter)
     
     userDataFilePath = './data/100K/ml-data/u.item'
     delimiter = '|'
-    itemInfo = readFormattedData(userDataFilePath, delimiter)
+    itemInfo = readFormattedDataAsMap(userDataFilePath, delimiter)
     
     dataBDD = aggregateDataForBDD(dataSelect, userInfo, itemInfo);
     
