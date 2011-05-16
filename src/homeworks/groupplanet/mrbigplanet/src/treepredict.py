@@ -84,7 +84,13 @@ def entropy(rows):
 
 
 def buildtree(rows,scoref=entropy):
+    
+    
     if len(rows)==0: return decisionnode( )
+    
+    #Jag, increase the number of nodes allowed for pure node
+    if len(rows) < 100: return decisionnode(results=uniquecounts(rows) )
+    
     current_score=scoref(rows)
     # Set up some variables to track the best criteria
     best_gain=0.0
