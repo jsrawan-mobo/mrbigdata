@@ -28,28 +28,68 @@ type =  nominal,ordinal, interval, nominal, ordinal, nominal, interval, interval
  
 '''
 
-def splitData(userData):
-    #This takes the userData, and formats it (i.e. removes tabs).
-    return 1;
+def readFormattedData (fileName, delimiterIn):
+    rowData = []
+    with open(fileName, 'rb') as f:
+        reader = csv.reader(f, delimiter = delimiterIn, quoting=csv.QUOTE_NONE )
+        for row in reader:
+            rowData.append( row ) 
+    return rowData;
+    
 
-def aggregateData(reader):
+def aggregateDataForBDD(dataObs, userInfo, itemInfo):
     # This takes the set of data and aggregrates relevant data sources
-    return 1;
+    # Reads in the files and appends
+    
+    dataBDD = []
+    
+    # Output
+    # obs.Id, obs.timestamp,  user.Age, user.gender, user.occupation, user.zip,  item.movieType, 
+    for dataRecord in dataObs:
+        
+        
+        
+        userId = dataRecord[0]
+        itemId = dataRecord[1]
+        rating = dataRecord[2]
+        timestamp = dataRecord[3]
+        
+        
+        iU = userInfo.index(userId)
+        iI = itemInfo.index(itemId)
+        
+        recordBDD = []
+        recordBDD[0] = userId
+        recordBDD[1] = timestamp
+        recordBDD[1] = userInfo[iU][1] #age
+        recordBDD[2] = userInfo[iU][2] #gender
+        recordBDD[3] = userInfo[iU][3] #occupation
+        recordBDD[4] = userInfo[iU][4] #zip
+        recordBDD[5] = 0;
+        
+        for j in range(18) :        
+            recordBDD[5] += itemInfo[iI][7+j] * 2^j 
+            
+        dataBDD.append(recordBDD)
+        
+    
+    
+    return dataBDD;
    
    
-def selectData(rowData, numPoints):
+def selectData(obsData, numPoints):
     #This selects n randomly selected points from the data set for use as a training set.
     
     #rowData = []
     #for row in reader:
     #    rowData.append(row) 
         
-    indexList = sample(range(len(rowData)), numPoints)    
-    dataObs = []       
+    indexList = sample(range(len(obsData)), numPoints)    
+    selectedObs = []       
     for i in indexList:
-        dataObs.append(rowData[i])
+        selectedObs.append(obsData[i])
             
-    return dataObs;   
+    return selectedObs;   
     
     
 def getlatLongFromZip (zip):
@@ -58,28 +98,28 @@ def getlatLongFromZip (zip):
 
 def main():
     
-    #1.  Load the u.dat file into memory
-    rowData = []
-    userDataFilePath = '/home/jsrawan/dev/mlearn/mrbigdata-jsrawan-git/src/homeworks/groupplanet/mrbigplanet/src/data/100K/ml-data/u.data'
-    with open(userDataFilePath, 'rb') as f:
-        reader = csv.reader(f, delimiter = '\t', quoting=csv.QUOTE_NONE )
-        for row in reader:
-            rowData.append( row ) 
-            #print rowData[ len[rowData] - 1]               
-      
     
-        
-    fileOut=open('/home/jsrawan/dev/mlearn/mrbigdata-jsrawan-git/src/homeworks/groupplanet/mrbigplanet/src/data/observation.json',"w") 
-    outString = json.dumps( rowData )
-    fileOut.write(outString)
-            
-    numPts = 1000;
-    dataObs = selectData(reader, numPts)   
-    print (dataObs)
-                    
+    #1. Read main observations.
+    userDataFilePath = './data/100K/ml-data/u.data'
+    delimiter = '\t'
+    dataObs = readFormattedData(userDataFilePath, delimiter)
+     
     #2.  Do selection of data
+    numPts = 1000
+    dataSelect = selectData(dataObs, numPts)   
+                    
         
     #3.  Aggregate the data from relevant files
+    userDataFilePath = './data/100K/ml-data/u.user'
+    delimiter = '|'
+    userInfo = readFormattedData(userDataFilePath, delimiter)
+    
+    userDataFilePath = './data/100K/ml-data/u.item'
+    delimiter = '|'
+    itemInfo = readFormattedData(userDataFilePath, delimiter)
+    
+    dataBDD = aggregateDataForBDD(dataSelect, userInfo, itemInfo);
+    
     
     #4.  Normalize various fields
     
@@ -87,6 +127,10 @@ def main():
     
     #first run the initializer to get starting centroids
     
+    fileOut=open('./data/observation.json',"w") 
+    outString = json.dumps( dataBDD )
+    fileOut.write(outString)
+                
 
 if __name__ == '__main__':
     main()
