@@ -10,6 +10,8 @@ Created on May 15, 2011
 @author: jag-srawan
 '''
 import json
+import re
+import string
 from math import sqrt
 from numpy import random
 from random import sample
@@ -48,6 +50,40 @@ def readFormattedDataAsMap (fileName, delimiterIn, mapI = 0):
             rowData.append( newRow ) 
     return rowData;
     
+    
+def readFixedWidthDataAsMap   (fileName, delimiterIn, mapI = 0):
+    #csv.register_dialect('spacedelimitedfixedwidth', delimiter=delimiterIn, quoting=csv.QUOTE_NONE)
+    rowData = []
+    fmtFields="(.{70})(.{5})(.{10})(.{15})(.{12})(.{12})(.{12})(.{10})(.+)"    
+    rFmt = re.compile (fmtFields)
+    
+    zipFields="(.{2})(\d{5})"    
+    rZip = re.compile (zipFields)
+
+    
+    
+    with open(fileName, 'rb') as f:
+            reader = csv.reader(f, delimiter = '\n')
+            for row in reader:
+                fixedMatch = rFmt.match( row[0] )
+                fixedRow = fixedMatch.groups()
+                
+                fixedStateZip = rZip.match( fixedRow[0] );
+                if (fixedStateZip != None) :
+                    stateZip = fixedStateZip.groups()
+                    zip = long ( stateZip [1] )
+                    lat = float ( fixedRow [7] )
+                    lon = float ( fixedRow [8] )
+                    newRow = [ zip, [lat, lon] ]
+                    rowData.append( newRow ) 
+    return rowData            
+            
+    
+     
+            
+    
+    
+    
 
 def aggregateDataForBDD(dataObs, userInfo, itemInfo):
     # This takes the set of data and aggregrates relevant data sources
@@ -80,7 +116,9 @@ def aggregateDataForBDD(dataObs, userInfo, itemInfo):
         recordBDD.insert(4, userInfo[iU][1][3] )#occupation
         recordBDD.insert(5, userInfo[iU][1][4]  )#zip, note postal codes are included.
         recordBDD.insert(6, long (0) ) #movie
-        recordBDD.insert(7, float ( rating) ) #rating
+        recordBDD.insert(7, float ( 0) ) #lat
+        recordBDD.insert(8, float ( 0) ) #lon
+        recordBDD.insert(9, float ( rating) ) #rating
         
         for j in range(18) :        
             recordBDD[6] += long ( itemInfo[iI][1][5+j] ) * pow(2,j) 
@@ -105,11 +143,31 @@ def selectData(obsData, numPoints):
         selectedObs.append(obsData[i])
             
     return selectedObs;   
+
+def is_number(s):
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
+
     
-    
-def getlatLongFromZip (zip):
-    #This gets the lat lon from the zip file.
-    return 1;    
+def replaceZip (dataBDD, zipInfo ):
+    #add fields lat and long
+    for rec in dataBDD:
+        
+        zipCodeStr = rec[5]
+        if ( not is_number (zipCodeStr) ) :
+            rec[7] = 0
+            rec[8] = 0            
+            continue
+        zipCode = long( zipCodeStr )
+        iZ = collect(zipInfo,0).index(35004)   # = 1
+        lat = float ( zipInfo[iZ][1][0] )
+        lon = float ( zipInfo[iZ][1][1] )
+        rec[7] = lat
+        rec[8] = lon
+    return 1
 
 def main():
     
@@ -125,18 +183,24 @@ def main():
                     
         
     #3.  Aggregate the data from relevant files
-    userDataFilePath = './data/100K/ml-data/u.user'
+    userInfoFilePath = './data/100K/ml-data/u.user'
     delimiter = '|'
-    userInfo = readFormattedDataAsMap(userDataFilePath, delimiter)
+    userInfo = readFormattedDataAsMap(userInfoFilePath, delimiter)
     
-    userDataFilePath = './data/100K/ml-data/u.item'
+    itemInfoFilePath = './data/100K/ml-data/u.item'
     delimiter = '|'
-    itemInfo = readFormattedDataAsMap(userDataFilePath, delimiter)
+    itemInfo = readFormattedDataAsMap(itemInfoFilePath, delimiter)
     
     dataBDD = aggregateDataForBDD(dataSelect, userInfo, itemInfo);
     
     
     #4.  Normalize various fields
+    userDataFilePath = './data/zcta5.txt'
+    delimiter = ' '
+    zipInfo = readFixedWidthDataAsMap(userDataFilePath, delimiter, 9)
+    
+    replaceZip(dataBDD, zipInfo )
+
     
     #5.  Write to json.
     
