@@ -1,3 +1,10 @@
+
+
+
+from optparse import OptionParser
+import json
+
+
 my_data=[['slashdot','USA','yes',18,'None'],
         ['google','France','yes',23,'Premium'],
         ['digg','USA','yes',24,'Basic'],
@@ -122,6 +129,43 @@ def printtree(tree,indent=''):
         print indent+'F->',
         printtree(tree.fb,indent+' ')
                     
+#main - run as 
+# python
+# import(treepredict)
+# reload(treepredict)
+# treepredict.giniimpurity(treepredict.my_data)
+# treepredict.entropy ( treepredict.my_data)
+# set1,set2=treepredict.divideset ( treepredict.my_data, 2, 'yes') 
+#
+# Commnad line example
+# python -c 'import treepredict; print treepredict.giniimpurity(treepredict.my_data)'        
 
-tree=buildtree(my_data)
-printtree(tree)
+def main() :    
+    
+    parser = OptionParser(" Usage: treepredict --dataFile data/observations.json")
+    parser.add_option('-d', '--dataFile', type = 'string', dest='dataFile',
+                            help='Pass in a user generated file')
+
+    (options, args) = parser.parse_args()
+    print options;
+    
+    if ( options.dataFile <> None ) :
+        print "yes"
+        filePath = options.dataFile; 
+        fileIn = open(filePath)
+        paramJson = fileIn.read()
+        fileIn.close()
+        theData = json.loads( paramJson )
+    else :
+        theData = my_data
+
+    tree=buildtree(theData)
+    printtree(tree)
+    print "giniImpurity:"
+    print giniimpurity(theData)
+    print "entropy:"
+    print entropy ( theData)
+    
+
+if __name__ == '__main__':
+    main()

@@ -85,14 +85,14 @@ def readFixedWidthDataAsMap   (fileName, delimiterIn, mapI = 0):
     
     
 
-def aggregateDataForBDD(dataObs, userInfo, itemInfo):
+def aggregateDataForBDD(dataObs, userInfo, itemInfo, zipInfo):
     # This takes the set of data and aggregrates relevant data sources
     # Reads in the files and appends
     
     dataBDD = []
     
     # Output
-    # obs.Id, obs.timestamp,  user.Age, user.gender, user.occupation, user.zip,  item.movieType, 
+    # user.Id, obs.timestamp,  user.Age, user.gender, user.occupation, user.zip, item.movieType, lat,long, rating
     for dataRecord in dataObs:
         
         
@@ -108,20 +108,23 @@ def aggregateDataForBDD(dataObs, userInfo, itemInfo):
         #iU = [for y in userInfo].index(1,0)
         #iI = itemInfo.index(itemId)
         
+        latLon = getLatLong(userInfo[iU][1][4], zipInfo)
+        
         recordBDD = []
         recordBDD.insert(0, long ( userId)  )
         recordBDD.insert(1, long ( timestamp ) )
         recordBDD.insert(2, long ( userInfo[iU][1][1] ) )#age
         recordBDD.insert(3, userInfo[iU][1][2] )#gender
         recordBDD.insert(4, userInfo[iU][1][3] )#occupation
-        recordBDD.insert(5, userInfo[iU][1][4]  )#zip, note postal codes are included.
-        recordBDD.insert(6, long (0) ) #movie
-        recordBDD.insert(7, float ( 0) ) #lat
-        recordBDD.insert(8, float ( 0) ) #lon
-        recordBDD.insert(9, float ( rating) ) #rating
+        recordBDD.insert(5, long (0) ) #movie
+        recordBDD.insert(6, latLon[0] ) #lat
+        recordBDD.insert(7, latLon[1] ) #lon
+        recordBDD.insert(8, float ( rating) ) #rating
+        
+        
         
         for j in range(18) :        
-            recordBDD[6] += long ( itemInfo[iI][1][5+j] ) * pow(2,j) 
+            recordBDD[5] += long ( itemInfo[iI][1][5+j] ) * pow(2,j) 
             
         dataBDD.append(recordBDD)
         
@@ -152,22 +155,16 @@ def is_number(s):
         return False
 
     
-def replaceZip (dataBDD, zipInfo ):
+def getLatLong (zipCodeStr, zipInfo ):
     #add fields lat and long
-    for rec in dataBDD:
         
-        zipCodeStr = rec[5]
-        if ( not is_number (zipCodeStr) ) :
-            rec[7] = 0
-            rec[8] = 0            
-            continue
-        zipCode = long( zipCodeStr )
-        iZ = collect(zipInfo,0).index(35004)   # = 1
-        lat = float ( zipInfo[iZ][1][0] )
-        lon = float ( zipInfo[iZ][1][1] )
-        rec[7] = lat
-        rec[8] = lon
-    return 1
+    if ( not is_number (zipCodeStr) ) :
+        return [ 0, 0]
+    zipCode = long( zipCodeStr )
+    iZ = collect(zipInfo,0).index(35004)   # = 1
+    lat = float ( zipInfo[iZ][1][0] )
+    lon = float ( zipInfo[iZ][1][1] )
+    return [ lat, lon]
 
 def main():
     
@@ -191,15 +188,17 @@ def main():
     delimiter = '|'
     itemInfo = readFormattedDataAsMap(itemInfoFilePath, delimiter)
     
-    dataBDD = aggregateDataForBDD(dataSelect, userInfo, itemInfo);
+    userDataFilePath = './data/zcta5.txt'
+    delimiter = ' '
+    zipInfo = readFixedWidthDataAsMap(userDataFilePath, delimiter, 9)    
+    
+    dataBDD = aggregateDataForBDD(dataSelect, userInfo, itemInfo, zipInfo);
     
     
     #4.  Normalize various fields
-    userDataFilePath = './data/zcta5.txt'
-    delimiter = ' '
-    zipInfo = readFixedWidthDataAsMap(userDataFilePath, delimiter, 9)
+
     
-    replaceZip(dataBDD, zipInfo )
+    #replaceZip(dataBDD, zipInfo )
 
     
     #5.  Write to json.
