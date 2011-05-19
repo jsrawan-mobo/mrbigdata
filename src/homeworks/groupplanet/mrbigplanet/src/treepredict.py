@@ -6,32 +6,34 @@ import json
 import math
 
 
-my_data=[['slashdot','USA','yes',18,'None'],
-        ['google','France','yes',23,'Premium'],
-        ['digg','USA','yes',24,'Basic'],
-        ['kiwitobes','France','yes',23,'Basic'],
-        ['google','UK','no',21,'Premium'],
-        ['(direct)','New Zealand','no',12,'None'],
-        ['(direct)','UK','no',21,'Basic'],
-        ['google','USA','no',24,'Premium'],
-        ['slashdot','France','yes',19,'None'],
-        ['digg','USA','no',18,'None'],
-        ['google','UK','no',18,'None'],
-        ['kiwitobes','UK','no',19,'None'],
-        ['digg','New Zealand','yes',12,'Basic'],
-        ['slashdot','UK','no',21,'None'],
-        ['google','UK','yes',18,'Basic'],
-        ['kiwitobes','France','yes',19,'Basic']]
+my_data=[['slashdot','USA','yes',18,0],
+        ['google','France','yes',23,1],
+        ['digg','USA','yes',24,1],
+        ['kiwitobes','France','yes',23,1],
+        ['google','UK','no',21,1],
+        ['(direct)','New Zealand','no',12,0],
+        ['(direct)','UK','no',21,1],
+        ['google','USA','no',24,1],
+        ['slashdot','France','yes',19,0],
+        ['digg','USA','no',18,0],
+        ['google','UK','no',18,0],
+        ['kiwitobes','UK','no',19,0],
+        ['digg','New Zealand','yes',12,1],
+        ['slashdot','UK','no',21,0],
+        ['google','UK','yes',18,1],
+        ['kiwitobes','France','yes',19,1]]
 
 # This class is just to hold the decision nodes, which decide the col, splitValue, results=labels for leaf nodes, and true/false branch is the number of nodes for each 
 # branch label.
 class decisionnode:
-    def __init__(self,col=-1,value=None,results=None,tb=None,fb=None):
+    def __init__(self, id = None, col=-1,value=None,results=None,tb=None,fb=None, ):
         self.col=col
         self.value=value
         self.results=results
         self.tb=tb
         self.fb=fb
+        self.id=id
+
         
 def divideset(rows,column,value):
         # Make a function that tells us if a row is in
@@ -88,29 +90,126 @@ def entropy(rows):
         ent=ent-p*log2(p)
     return ent
 
+# Perform variance on class lables for the given node
+# BestSplit = D * Var(D) -Dl*Var(Dl) + Dr+Var(Dr))
+def splitVariance(parentRows, childL, childR):
+    
+    
+    magD = magnitude (parentRows )
+    magDl = magnitude (childL)
+    magDr = magnitude (childR )
+    varD  = variance(parentRows)
+    varDl = variance(childL)
+    varDr = variance(childR)
+    
+    
+    splitVar = magD * varD - ( magDl * varDl + magDr * varDr )
+    
+    return splitVar
+    
+    
+    
+# Take the last column and 
+def magnitude(rows, col = -1 ):
+    if (col == -1): 
+        col = len(rows[0]) - 1
+    mag = 0
+    for row in rows:
+        mag += math.pow( row[col] , 2)* 1.0
+    
+    n = len (rows)    
+    mag = math.sqrt(mag)
+    return mag   
+
+# Take the last column and 
+def variance(rows, col = -1 ):
+    if (col == -1): 
+        col = len(rows[0]) - 1
+    var = 0
+    for row in rows:
+        var += math.pow( row[col] , 2)* 1.0
+    
+    n = len (rows)    
+    var /= n-1
+    return var
+
+# Take the last column and 
+def average(rows, col = -1 ):
+    if (col == -1): 
+        col = len(rows[0]) - 1
+    avg = 0
+    for row in rows:
+        avg += row[col] * 1.0;
+    
+    n = len (rows)    
+    avg /= n
+    return avg
+ 
+ 
+    def log2(x):
+        return 0
+        
+
 # Information gain between parent and children
 # current score, is parent score.
 #
 
-def informationGain (parentScore, parentRows, childRows1, childRows2, scoref=entropy):
+def informationGain (parentScore, parentRows, childL, childR, scoref=entropy):
 
-    p=float(len(childRows1))/len(parentRows)
-    gain=parentScore-p*scoref(childRows1)-(1-p)*scoref(childRows2)
+    p=float(len(childL))/len(parentRows)
+    gain=parentScore-p*scoref(childL)-(1-p)*scoref(childR)
     return gain;
+
+
+# Max depth of b-tree
+# Min Inputs required
+# Min Gini
+def stoppingCriteria (rows, nodeId):
+
+    MIN_GINI = 0.01
+    MIN_INPUTS = 10
+    MAX_DEPTH = 6
+    
+    gini = giniimpurity(rows)
+    inputs = len(rows)
+    
+    depth = math.floor( math.log(nodeId,2) ) 
+    
+    
+    if ( gini < MIN_GINI):
+        return True
+    
+    if ( inputs < MIN_INPUTS):
+        return True
+    
+    if ( depth > MAX_DEPTH):
+        return True
+    
+    return False
+
+
+def getChildNodeId (nodeId):
+    depth = math.floor( math.log(nodeId,2) )
+    firstNodeAtPrev = math.pow(2,depth)
+    
+    childNodeId = math.pow(2,depth+1) +  (nodeId - firstNodeAtPrev ) * 2 
+    return int ( childNodeId )
+
 
 # buildtree - main function for tree building
 # 
 #
+# returns descision node, that contains the split, or pure node if no split
 #
-#
-def buildtree(rows,scoref=entropy):
+def buildtree(rows,nodeId,scoref=entropy):
     
     
     if len(rows)==0: return decisionnode( )
     
     #Jag, increase the number of nodes allowed for pure node
-    if len(rows) < 10: return decisionnode(results=uniquecounts(rows) )
-    
+    if ( stoppingCriteria (rows, nodeId ) ):
+        return decisionnode(id=nodeId, results=uniquecounts(rows) )
+         
     current_score=scoref(rows)
     
     # Set up some variables to track the best criteria
@@ -140,20 +239,21 @@ def buildtree(rows,scoref=entropy):
                 best_sets=(set1,set2)
     # Create the subbranches
     if best_gain>0:
-        trueBranch=buildtree(best_sets[0])
-        falseBranch=buildtree(best_sets[1])
-        return decisionnode( col=best_criteria[0],value=best_criteria[1],tb=trueBranch,fb=falseBranch )
+        childNodeId = getChildNodeId(nodeId )
+        trueBranch=buildtree(best_sets[0], childNodeId  ) 
+        falseBranch=buildtree(best_sets[1], childNodeId + 1  ) 
+        return decisionnode( id=nodeId, col=best_criteria[0],value=best_criteria[1],tb=trueBranch,fb=falseBranch )
     else:
-        return decisionnode( results=uniquecounts(rows) )
+        return decisionnode( id=nodeId, results=uniquecounts(rows) )
 
 def printtree(tree,indent=''):
     
     # Is this a leaf node? Then print out the count of each of the class labels.
     if tree.results!=None:
-        print str(tree.results)
+        print 'N' + str(tree.id) + ' ' + str(tree.results)
     else:
         # Print the criteria
-        print str(tree.col)+':'+str(tree.value)+'? '
+        print 'N' + str(tree.id)+' ' + str(tree.col)+':'+str(tree.value)+'? '
         # Print the branches
         print indent+'T->',
         printtree(tree.tb,indent+' ')
@@ -197,12 +297,20 @@ def main() :
     else :
         theData = my_data
 
-    tree=buildtree(theData)
+    startNodeId = 1 #level depth=0
+    tree=buildtree(theData, startNodeId)
     printtree(tree)
+    print "Global Data"
     print "giniImpurity:"
     print giniimpurity(theData)
     print "entropy:"
     print entropy ( theData)
+    print "magnitude:"
+    print magnitude ( theData)
+    print "variance:"
+    print variance ( theData)
+    print "average:"
+    print average ( theData)
     
 
 if __name__ == '__main__':
