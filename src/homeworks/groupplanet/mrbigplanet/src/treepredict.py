@@ -177,7 +177,7 @@ def informationGain (parentScore, parentRows, childL, childR, scoref=entropy):
 def stoppingCriteria (rows, nodeId):
 
     MIN_GINI = 0.01
-    MIN_INPUTS = 10
+    MIN_INPUTS = 1
     MAX_DEPTH = 6
     
     gini = giniimpurity(rows)
@@ -241,16 +241,16 @@ def controller (theData):
             
         for id in ids:
             if ( depth == 0):
-                applicableData = theData
+                applicableInputs = theData
             else:
-                applicableData = []
+                applicableInputs = modelFile.getApplicableInputsforNodeId(id, theData)
                 #TBD get all nodes for this depth
             #applicableData =
          
             #2b. Find applicable nodes
      
             #2c. find best split Mr jobs
-            modelNode = bestSplit(applicableData, id )            
+            modelNode = bestSplit(applicableInputs, id )            
     
             #2d. Write to file
             if (modelNode.col != -1):
@@ -409,10 +409,10 @@ def main() :
 
 
     # use map reduce version
-    controller(theData)
-    print "finished controller job succesfully"
+    #controller(theData)
+    #print "finished controller job succesfully"
     
-    return 1
+    #return 1
     # This is the default buld treee
     startNodeId = 1 #level depth=0
     tree=buildtree(theData, startNodeId)

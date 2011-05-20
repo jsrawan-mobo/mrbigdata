@@ -43,7 +43,7 @@ def getChildNodeId (nodeId, isLtree = True):
 
 # Depth = 0 is the root node
 def getDepthFromId (nodeId):
-        depth = math.floor( math.log(nodeId,2) )
+        depth = int ( math.floor( math.log(nodeId,2) ) )
         return depth
     
 # Depth = 0 is the root node
@@ -56,6 +56,21 @@ def enumerateIdsFromDepth (depth):
         
         return idRange    
     
+    
+#    
+def divideset(rows,column,value):
+        # Make a function that tells us if a row is in
+        # the first group (true) or the second group (false)
+        split_function=None
+        if isinstance(value,int) or isinstance(value,float):
+            split_function=lambda row:row[column]>=value  #note larger than equal to for left node.
+        else:
+            split_function=lambda row:row[column]==value
+        # Divide the rows into two sets and return them
+        set1=[row for row in rows if split_function(row)]
+        set2=[row for row in rows if not split_function(row)]
+        return (set1,set2)
+        
     
 class planetModel(object):
 
@@ -82,7 +97,7 @@ class planetModel(object):
             reader = csv.reader(f, delimiter = self._delimiter, quoting=csv.QUOTE_NONE )
             for row in reader:
                 
-                newRow = [ row[0], row]
+                newRow = [ int(row[0]), [ int( row[0]), int(row[1]), row[2]]]
                 rowData.append( newRow ) 
         f.close()
         self._rowData = rowData        
@@ -101,7 +116,8 @@ class planetModel(object):
      
     def getDataRowById(self, nodeId):
         rowId = collect(self._rowData,0).index(nodeId)   # = 1
-        return self._rowData[rowId][1]
+        dataRow = self._rowData[rowId][1]
+        return [ int ( dataRow[0] ), int ( dataRow[1] ), dataRow[2], ]
 
      
     def appendData (self, nodeId, colNum, splitPredicate):
@@ -134,7 +150,7 @@ class planetModel(object):
     
     #Gets the depth of the tree      
     #Simply get the max of tree  
-    def getDepthFromId (self):
+    def getDepth (self):
             sortedMapKeys = collect(self._rowData,0).sort()
             
             last = len(sortedMapKeys)
@@ -155,7 +171,7 @@ class planetModel(object):
         for id in ids:
             idsIndex = -1 
             try:
-                idsIndex = idsMap.index( str(id) )
+                idsIndex = idsMap.index( id )
             except ValueError:
                 #do nothing, this is expected time to time
                 print ''
@@ -164,8 +180,47 @@ class planetModel(object):
                 nodeIds.append(id)                                
             
         return nodeIds
+    
+    def getNodeIdToRoot(self,nodeId):
+    
+        selfDepth = getDepthFromId(nodeId)
+        parentDepth = selfDepth - 1
+        firstNodeAtCurrent = int ( math.pow(2,selfDepth) )
         
+        parentNodeId = int ( math.pow(2,parentDepth) +  int ( (nodeId - firstNodeAtCurrent ) / 2 ) )
         
+        if ( parentNodeId != 1): 
+            returnedList = self.getNodeIdToRoot(parentNodeId)
+            returnedList.append(nodeId)
+            return returnedList
+        else: # root
+            return [ parentNodeId ];
+        
+    def getApplicableInputsforNodeId(self, nodeId, inputs):
+        
+        #1 Figure out he node Id order
+        
+        idList = self.getNodeIdToRoot(nodeId)
+        idList.append(nodeId) #for the foreloops, this is required.
+        currentSet = inputs
+        
+        #Just go through each node, and see what data is applicable.
+        for i in range (len( idList) - 1):
+                 
+            id = idList[i];
+            nextId = idList[i+1]; 
+            nodeInstruction = self.getDataRowById(id) 
+        
+            (set1, set2) = divideset( inputs, nodeInstruction[1], nodeInstruction[2])   
+                
+            if ( nextId % 2 ) == 0:
+                currentSet = set1
+            else:
+                currentSet = set2
+        
+        return currentSet 
+    
+    
     def doMagic (self, someNumber):
         
         return self.magicNumber + someNumber + self.someVar       
