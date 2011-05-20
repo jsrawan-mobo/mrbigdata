@@ -256,23 +256,35 @@ class planetModel(object):
         
         return currentSet 
     
+    def getNodeLabel(self, nodeData):
+        
+        if (nodeData[1] == -1 ):
+            label = str( nodeData[0] ) + "\n"
+        else:            
+            label = str( nodeData[0] ) + "---" + str ( nodeData[1] ) + "?" + str( nodeData[2] )
+        return label
+        
     
     def addGraphNode(self, parentId, gr):
-        
+     
         lNodeId = getChildNodeId(parentId, True)
         rNodeId = getChildNodeId(parentId, False)
-        
-        gr.add_node( parentId )
+                
+        parent = self.getDataRowById(parentId)
+        label = self.getNodeLabel(parent)
+        gr.add_node( parentId, [('fontcolor', "red"), ("label", label)])
         
         left = self.getDataRowById(lNodeId)
         if ( left != None ):
-            gr.add_node( lNodeId ) # 'weight=10')
-            gr.add_edge(parentId, lNodeId, left[3])
+            label = self.getNodeLabel(left)
+            gr.add_node( lNodeId, [("label", label)])
+            gr.add_edge(parentId, lNodeId, left[3], '')
             self.addGraphNode(lNodeId, gr)
         right = self.getDataRowById(rNodeId) 
         if ( right != None ):
-            gr.add_node( rNodeId)         
-            gr.add_edge(parentId, rNodeId, right[3])   
+            label = self.getNodeLabel(right)            
+            gr.add_node( rNodeId, [("label", label)])         
+            gr.add_edge(parentId, rNodeId, right[3], '')  
             self.addGraphNode(rNodeId, gr)
     
     # draws graph based on the nodes.  The edges are determined automatially from the nodeIds.
@@ -282,21 +294,23 @@ class planetModel(object):
         gr = graph()
         self.addGraphNode(1,gr)
     # Draw as PNG
-        with open("./planetModel.viz", 'wb') as f:
-            dot = write(gr,f)
-            f.write(dot)
-            gvv = gv.readstring(dot)
-            gv.layout(gvv,'dot')
-            gv.render(gvv,'png', fileName)
-            f.close()
+        #with open("./planetModel.viz", 'wb') as f:
+            #dot = write(gr,f)
+            #f.write(dot)
+            #gvv = gv.readstring(dot)
+            #gv.layout(gvv,'dot')
+            #gv.render(gvv,'png', fileName)
+            #f.close()
             
         gst = digraph()
         self.addGraphNode(1,gst)            
         with open("./planetModel.viz", 'wb') as f:            
-            #st, order = breadth_first_search(gr, root=1)
-            #gst = digraph()
-            #gst.add_spanning_tree(st)
+            #st, order = breadth_first_search(gst, root=1)
+            #gst2 = digraph()
+            #gst2.add_spanning_tree(gst.nodes())
+            #gst2.(1, 'post')
             dot = write(gst,f)
+            f.write(dot)
             gvv = gv.readstring(dot)
             gv.layout(gvv,'dot')
             gv.render(gvv,'png', fileName)   
