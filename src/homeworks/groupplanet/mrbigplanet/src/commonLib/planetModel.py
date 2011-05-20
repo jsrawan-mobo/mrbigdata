@@ -243,43 +243,60 @@ class planetModel(object):
         
         return currentSet 
     
-    def getNodeLabel(self, nodeData):
+    def getNodeGraphAttr(self, nodeData, inputs):
         
         if (nodeData[1] == -1 ):
-            label = str( nodeData[0] ) + "\n"
+            
+            thisInputs = self.getApplicableInputsforNodeId(nodeData[0], inputs)
+            r = rowMath.rowMath(thisInputs)
+            variance = r.variance()
+            varianceStr="%.3f"%variance
+            label = str( nodeData[0] ) + "--(" + str ("Var=") + varianceStr  + ")"
+            
+            if (variance == 0.0 ): 
+                color = "green"
+            else:
+                color = "red"
+            
+            fontsize = 14
         else:            
-            label = str( nodeData[0] ) + "---" + str ( nodeData[1] ) + "?" + str( nodeData[2] )
-        return label
+            label = str( nodeData[0] ) + "--(" + str ( nodeData[1] ) + "?" + str( nodeData[2] ) + ")"
+            color = "black"
+            fontsize = 14
+            
+        attr = [('fontcolor', color), ("label", label), ('fontsize', fontsize)]            
+        return attr
         
     
-    def addGraphNode(self, parentId, gr):
+    def addGraphNode(self, parentId, gr, inputs):
      
         lNodeId = getChildNodeId(parentId, True)
         rNodeId = getChildNodeId(parentId, False)
                 
         parent = self.getDataRowById(parentId)
-        label = self.getNodeLabel(parent)
-        gr.add_node( parentId, [('fontcolor', "red"), ("label", label)])
+        attr = self.getNodeGraphAttr(parent, inputs)
+        gr.add_node( parentId, attr)
         
         left = self.getDataRowById(lNodeId)
         if ( left != None ):
-            label = self.getNodeLabel(left)
-            gr.add_node( lNodeId, [("label", label)])
+            attr = self.getNodeGraphAttr(left, inputs)
+            gr.add_node( lNodeId,attr)
             gr.add_edge(parentId, lNodeId, left[3], '')
-            self.addGraphNode(lNodeId, gr)
+            self.addGraphNode(lNodeId, gr, inputs)
+        
         right = self.getDataRowById(rNodeId) 
         if ( right != None ):
-            label = self.getNodeLabel(right)            
-            gr.add_node( rNodeId, [("label", label)])         
+            attr = self.getNodeGraphAttr(right, inputs)            
+            gr.add_node( rNodeId, attr)         
             gr.add_edge(parentId, rNodeId, right[3], '')  
-            self.addGraphNode(rNodeId, gr)
+            self.addGraphNode(rNodeId, gr, inputs)
     
     # draws graph based on the nodes.  The edges are determined automatially from the nodeIds.
-    def drawGraph(self):
+    def drawGraph(self, inputs):
         
         fileName = 'planetModel.png'
         gr = graph()
-        self.addGraphNode(1,gr)
+        self.addGraphNode(1,gr, inputs)
     # Draw as PNG
         #with open("./planetModel.viz", 'wb') as f:
             #dot = write(gr,f)
@@ -290,7 +307,7 @@ class planetModel(object):
             #f.close()
             
         gst = digraph()
-        self.addGraphNode(1,gst)            
+        self.addGraphNode(1,gst, inputs)            
         with open("./planetModel.viz", 'wb') as f:            
             #st, order = breadth_first_search(gst, root=1)
             #gst2 = digraph()

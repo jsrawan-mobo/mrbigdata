@@ -174,7 +174,7 @@ def controller (theData):
 
     modelFileFinal = planetModel.planetModel(userDataFilePath)
     modelFileFinal.readFile()
-    fileName = modelFileFinal.drawGraph()
+    fileName = modelFileFinal.drawGraph(theData)
     Image.open(fileName).show()
 
     
