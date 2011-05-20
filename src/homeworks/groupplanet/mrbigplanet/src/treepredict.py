@@ -294,6 +294,12 @@ def controller (theData):
             #2d. increment stuff
             modelFile.flushFile()            
         depth = depth +1
+
+    modelFileFinal = planetModel.planetModel(userDataFilePath)
+    modelFileFinal.readFile()
+    fileName = modelFileFinal.drawGraph()
+    Image.open(fileName).show()
+
     
     return 1
     
@@ -491,7 +497,7 @@ def main() :
     # use map reduce version
     controller(theData)
     print "finished controller job succesfully"
-    testGraph()
+    #testGraph()
     return 1
     # This is the default buld treee
     startNodeId = 1 #level depth=0

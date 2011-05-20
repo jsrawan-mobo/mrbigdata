@@ -18,6 +18,11 @@ from random import sample
 from random import seed
 from operator import itemgetter
 import csv
+import gv 
+from pygraph import graph
+from pygraph import digraph
+from pygraph.readwrite.dot import write
+from pygraph.algorithms.searching import breadth_first_search
 
 
 def collect(l, index):
@@ -129,9 +134,13 @@ class planetModel(object):
      
      
     def getDataRowById(self, nodeId):
-        rowId = collect(self._rowData,0).index(nodeId)   # = 1
+        rowId = -1
+        try:
+            rowId = collect(self._rowData,0).index(nodeId)   # = 1
+        except ValueError:
+            return None
         dataRow = self._rowData[rowId][1]
-        return [ int ( dataRow[0] ), int ( dataRow[1] ), dataRow[2], ]
+        return [ int ( dataRow[0] ), int ( dataRow[1] ), dataRow[2], int ( dataRow[3] ) ]
 
      
     def appendData (self, nodeId, colNum, splitPredicate, count):
@@ -248,8 +257,52 @@ class planetModel(object):
         return currentSet 
     
     
-    def doMagic (self, someNumber):
+    def addGraphNode(self, parentId, gr):
         
-        return self.magicNumber + someNumber + self.someVar       
+        lNodeId = getChildNodeId(parentId, True)
+        rNodeId = getChildNodeId(parentId, False)
+        
+        gr.add_node( parentId )
+        
+        left = self.getDataRowById(lNodeId)
+        if ( left != None ):
+            gr.add_node( lNodeId ) # 'weight=10')
+            gr.add_edge(parentId, lNodeId, left[3])
+            self.addGraphNode(lNodeId, gr)
+        right = self.getDataRowById(rNodeId) 
+        if ( right != None ):
+            gr.add_node( rNodeId)         
+            gr.add_edge(parentId, rNodeId, right[3])   
+            self.addGraphNode(rNodeId, gr)
     
+    # draws graph based on the nodes.  The edges are determined automatially from the nodeIds.
+    def drawGraph(self):
+        
+        fileName = 'planetModel.png'
+        gr = graph()
+        self.addGraphNode(1,gr)
+    # Draw as PNG
+        with open("./planetModel.viz", 'wb') as f:
+            dot = write(gr,f)
+            f.write(dot)
+            gvv = gv.readstring(dot)
+            gv.layout(gvv,'dot')
+            gv.render(gvv,'png', fileName)
+            f.close()
+            
+        gst = digraph()
+        self.addGraphNode(1,gst)            
+        with open("./planetModel.viz", 'wb') as f:            
+            #st, order = breadth_first_search(gr, root=1)
+            #gst = digraph()
+            #gst.add_spanning_tree(st)
+            dot = write(gst,f)
+            gvv = gv.readstring(dot)
+            gv.layout(gvv,'dot')
+            gv.render(gvv,'png', fileName)   
+            f.close()         
+            
+            
+             
+        return fileName
         
