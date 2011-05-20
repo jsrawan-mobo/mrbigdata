@@ -9,7 +9,7 @@ import math
 from commonLib import planetModel
 
 
-my_data=[['slashdot','USA','yes',18,0],
+my_data =[['slashdot','USA','yes',18,0],
         ['google','France','yes',23,1],
         ['digg','USA','yes',24,1],
         ['kiwitobes','France','yes',23,1],
@@ -26,13 +26,31 @@ my_data=[['slashdot','USA','yes',18,0],
         ['google','UK','yes',18,1],
         ['kiwitobes','France','yes',19,1]]
 
+my_data_orig=[['slashdot','USA','yes',18,'None'],
+        ['google','France','yes',23,'Premium'],
+        ['digg','USA','yes',24,'Basic'],
+        ['kiwitobes','France','yes',23,'Basic'],
+        ['google','UK','no',21,'Premium'],
+        ['(direct)','New Zealand','no',12,'None'],
+        ['(direct)','UK','no',21,'Basic'],
+        ['google','USA','no',24,'Premium'],
+        ['slashdot','France','yes',19,'None'],
+        ['digg','USA','no',18,'None'],
+        ['google','UK','no',18,'None'],
+        ['kiwitobes','UK','no',19,'None'],
+        ['digg','New Zealand','yes',12,'Basic'],
+        ['slashdot','UK','no',21,'None'],
+        ['google','UK','yes',18,'Basic'],
+        ['kiwitobes','France','yes',19,'Basic']]
+
 # This class is just to hold the decision nodes, which decide the col, splitValue, results=labels for leaf nodes, and true/false branch is the number of nodes for each 
 # branch label.
 class ModelNode:
-    def __init__(self, id = None, col=-1, split=None, ):
+    def __init__(self, id = None, col=-1, split=None, count = None):
         self.col=col
         self.split=split
         self.id=id
+        self.count=count
         
         
 class decisionnode:
@@ -102,6 +120,7 @@ def entropy(rows):
 
 # Perform variance on class lables for the given node
 # BestSplit = D * Var(D) -Dl*Var(Dl) + Dr+Var(Dr))
+# This is when output is numerical
 def splitVariance(parentRows, childL, childR):
     
     
@@ -216,8 +235,8 @@ def controller (theData):
     
     #1.  while we have more loops, open file and readIds.  First time, we start from scratch
     userDataFilePath = './data/modeldata.csv'
-    modelFile = planetModel.planetModel(userDataFilePath)
-    modelFile.flushFile()
+    modelFileOrig = planetModel.planetModel(userDataFilePath)
+    modelFileOrig.flushFile()
 
     
     moreNodes = True
@@ -235,7 +254,7 @@ def controller (theData):
         ids = []
         if ( depth == 0):
             ids = [1]    
-            modelFile.appendData(1, -1, -1)
+            modelFile.appendData(1, -1, -1, -1)
         else:
             ids = modelFile.getNodeIdsAtDepth(depth)
             
@@ -252,13 +271,17 @@ def controller (theData):
             #2c. find best split Mr jobs
             modelNode = bestSplit(applicableInputs, id )            
     
+            if ( modelNode.id == None ):
+                continue
+                
             #2d. Write to file
             if (modelNode.col != -1):
-                modelFile.addPredicate(modelNode.id, modelNode.col, modelNode.split)
-                modelFile.flushFile()
+                modelFile.addPredicate(modelNode.id, modelNode.col, modelNode.split, modelNode.count)                
                 moreNodes = True
-            
+            else:
+                modelFile.addPredicate(modelNode.id, -1, -1, modelNode.count)
             #2d. increment stuff
+            modelFile.flushFile()            
         depth = depth +1
     
     return 1
@@ -269,8 +292,9 @@ def bestSplit(rows, nodeId, scoref=entropy):
     if len(rows)==0: return ModelNode( )
     
     #Jag, increase the number of nodes allowed for pure node
+
     if ( stoppingCriteria (rows, nodeId ) ):
-        return ModelNode(id=nodeId)
+        return ModelNode(id=nodeId, count=len(rows))
          
     current_score=scoref(rows)
     
@@ -301,9 +325,9 @@ def bestSplit(rows, nodeId, scoref=entropy):
                 best_sets=(set1,set2)
     # Create the subbranches
     if best_gain>0:
-        return ModelNode( id=nodeId, col=best_criteria[0], split=best_criteria[1] )
+        return ModelNode( id=nodeId, col=best_criteria[0], split=best_criteria[1], count=len(rows))
     else:
-        return ModelNode( id=nodeId )
+        return ModelNode( id=nodeId, count=len(rows) )
     
 
 # buildtree - main function for tree building
@@ -409,10 +433,10 @@ def main() :
 
 
     # use map reduce version
-    #controller(theData)
-    #print "finished controller job succesfully"
+    controller(theData)
+    print "finished controller job succesfully"
     
-    #return 1
+    return 1
     # This is the default buld treee
     startNodeId = 1 #level depth=0
     tree=buildtree(theData, startNodeId)

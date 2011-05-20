@@ -43,7 +43,7 @@ def getChildNodeId (nodeId, isLtree = True):
 
 # Depth = 0 is the root node
 def getDepthFromId (nodeId):
-        depth = int ( math.floor( math.log(nodeId,2) ) )
+        depth = int ( math.floor( math.log( nodeId,2) ) )
         return depth
     
 # Depth = 0 is the root node
@@ -71,6 +71,20 @@ def divideset(rows,column,value):
         set2=[row for row in rows if not split_function(row)]
         return (set1,set2)
         
+def is_float(s):
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
+    
+def is_int(s):
+    try:
+        int(s)
+        return True
+    except ValueError:
+        return False    
+            
     
 class planetModel(object):
 
@@ -97,7 +111,7 @@ class planetModel(object):
             reader = csv.reader(f, delimiter = self._delimiter, quoting=csv.QUOTE_NONE )
             for row in reader:
                 
-                newRow = [ int(row[0]), [ int( row[0]), int(row[1]), row[2]]]
+                newRow = [ int(row[0]), [ int( row[0]), int(row[1]), row[2], int(row[3]) ]]
                 rowData.append( newRow ) 
         f.close()
         self._rowData = rowData        
@@ -120,10 +134,10 @@ class planetModel(object):
         return [ int ( dataRow[0] ), int ( dataRow[1] ), dataRow[2], ]
 
      
-    def appendData (self, nodeId, colNum, splitPredicate):
-        self._rowData.append( [nodeId, [ nodeId, -1,-1 ] ] )
+    def appendData (self, nodeId, colNum, splitPredicate, count):
+        self._rowData.append( [nodeId, [ nodeId, colNum,splitPredicate, count ] ] )
         
-    def updateData (self, nodeId, colNum, splitPredicate):
+    def updateData (self, nodeId, colNum, splitPredicate, count):
         
         try:
             rowId = collect(self._rowData,0).index(nodeId)   # = 1
@@ -131,20 +145,21 @@ class planetModel(object):
                 print "could not find node Id: " + str(nodeId)
         
         orginalData = self._rowData[rowId]
-        self._rowData[rowId] = [nodeId,[ nodeId,colNum,splitPredicate]]
+        self._rowData[rowId] = [nodeId,[ nodeId, colNum,splitPredicate, count]]
          
     #reads the file into csv
     # Node_id, colNumber, splitPredicate,
     # returns the nodeId of the new node      
-    def addPredicate(self, parentId, colNumber, splitPredicate):
+    def addPredicate(self, parentId, colNumber, splitPredicate, count):
         
         lNodeId = getChildNodeId(parentId, True)
         rNodeId = getChildNodeId(parentId, False)
   
-        self.updateData(parentId, colNumber, splitPredicate )
+        self.updateData(parentId, colNumber, splitPredicate, count )
         
-        self.appendData( lNodeId, -1,-1 )
-        self.appendData( rNodeId, -1,-1 )
+        if (colNumber != -1): #don't add leaf nodes.
+            self.appendData( lNodeId, -1,-1, -1 )
+            self.appendData( rNodeId, -1,-1, -1 )
         
         
     
@@ -191,7 +206,7 @@ class planetModel(object):
         
         if ( parentNodeId != 1): 
             returnedList = self.getNodeIdToRoot(parentNodeId)
-            returnedList.append(nodeId)
+            returnedList.append(parentNodeId)
             return returnedList
         else: # root
             return [ parentNodeId ];
@@ -210,8 +225,20 @@ class planetModel(object):
             id = idList[i];
             nextId = idList[i+1]; 
             nodeInstruction = self.getDataRowById(id) 
-        
-            (set1, set2) = divideset( inputs, nodeInstruction[1], nodeInstruction[2])   
+            
+            column = nodeInstruction[1]
+            decisionStr = nodeInstruction[2]
+            decision=''
+            
+            if ( is_float(decisionStr) ) :
+                if ( is_int(decisionStr) ):
+                    decision = int(decisionStr)
+                else:
+                    decision = float(decisionStr)
+            else:
+                decision = decisionStr
+                
+            (set1, set2) = divideset( currentSet, column, decision )   
                 
             if ( nextId % 2 ) == 0:
                 currentSet = set1

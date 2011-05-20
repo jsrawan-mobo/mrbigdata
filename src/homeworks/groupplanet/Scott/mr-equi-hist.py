@@ -24,9 +24,9 @@ class MREquiHist(MRJob):
     def pre_mapper(self, key, xjIn):
         xIn = json.loads(xjIn)
         x = xIn[self.options.attr]
-        if self.lo = None or self.lo > x:
+        if self.lo == None or self.lo >= x:
             self.lo = x
-        if self.hi = None or self.hi < x:
+        if self.hi == None or self.hi <= x:
             self.hi = x
 
     def pre_mapper_final(self):
