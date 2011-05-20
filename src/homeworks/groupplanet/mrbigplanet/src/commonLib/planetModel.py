@@ -30,7 +30,7 @@ def collect(l, index):
 
 # This returns a nodeId,that can be derived by the depth of the tree.
 # rTree = lTree +1    
-def getChildNodeId (nodeId, isLtree = False):
+def getChildNodeId (nodeId, isLtree = True):
     depth = getDepthFromId(nodeId)
     firstNodeAtPrev = math.pow(2,depth)
     
@@ -47,12 +47,12 @@ def getDepthFromId (nodeId):
         return depth
     
 # Depth = 0 is the root node
-def getIdsFromDepth (depth):
+def enumerateIdsFromDepth (depth):
     
-        firstNodeId = math.pow(2,depth)
-        numNodes = math.pow(2,depth)
+        firstNodeId = int ( math.pow(2,depth) )
+        numNodes = int ( math.pow(2,depth) )
         
-        idRange =  range (firstNodeId , depth + numNodes, 1)
+        idRange =  range (firstNodeId , firstNodeId + numNodes, 1)
         
         return idRange    
     
@@ -78,7 +78,7 @@ class planetModel(object):
 
     def readFile (self):
         rowData = []
-        with open(self._fileName, 'rb') as f:
+        with open(self._fileName, 'rwb') as f:
             reader = csv.reader(f, delimiter = self._delimiter, quoting=csv.QUOTE_NONE )
             for row in reader:
                 
@@ -109,7 +109,10 @@ class planetModel(object):
         
     def updateData (self, nodeId, colNum, splitPredicate):
         
-        rowId = collect(self._rowData,0).index(nodeId)   # = 1
+        try:
+            rowId = collect(self._rowData,0).index(nodeId)   # = 1
+        except ValueError:
+                print "could not find node Id: " + str(nodeId)
         
         orginalData = self._rowData[rowId]
         self._rowData[rowId] = [nodeId,[ nodeId,colNum,splitPredicate]]
@@ -117,10 +120,10 @@ class planetModel(object):
     #reads the file into csv
     # Node_id, colNumber, splitPredicate,
     # returns the nodeId of the new node      
-    def addNodes(self, parentId, colNumber, splitPredicate):
+    def addPredicate(self, parentId, colNumber, splitPredicate):
         
-        lNodeId = getChildNodeId(parentId, False)
-        rNodeId = getChildNodeId(parentId, True)
+        lNodeId = getChildNodeId(parentId, True)
+        rNodeId = getChildNodeId(parentId, False)
   
         self.updateData(parentId, colNumber, splitPredicate )
         
@@ -132,7 +135,7 @@ class planetModel(object):
     #Gets the depth of the tree      
     #Simply get the max of tree  
     def getDepthFromId (self):
-            sortedMapKeys = collect(self._rowData,0).sort
+            sortedMapKeys = collect(self._rowData,0).sort()
             
             last = len(sortedMapKeys)
             maxNodeI =  sortedMapKeys.index(last)
@@ -145,13 +148,20 @@ class planetModel(object):
     # Simply get all possible nodes at depth
     # Return the node ids        
     def getNodeIdsAtDepth(self, depth):
-        ids = getIdsFromDepth
-        idsMap = collect(self._rowData,0)
+        ids = enumerateIdsFromDepth(depth)
+        idsMap = collect(self._rowData, 0)
         
         nodeIds = []
         for id in ids:
-            if ( idsMap.index(id) >= 0) :
-                nodeIds.append(id)
+            idsIndex = -1 
+            try:
+                idsIndex = idsMap.index( str(id) )
+            except ValueError:
+                #do nothing, this is expected time to time
+                print ''
+                
+            if ( idsIndex >= 0 ):
+                nodeIds.append(id)                                
             
         return nodeIds
         

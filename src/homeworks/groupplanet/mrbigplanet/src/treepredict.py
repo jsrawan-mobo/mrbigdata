@@ -6,6 +6,9 @@ import json
 import math
 
 
+from commonLib import planetModel
+
+
 my_data=[['slashdot','USA','yes',18,0],
         ['google','France','yes',23,1],
         ['digg','USA','yes',24,1],
@@ -25,6 +28,13 @@ my_data=[['slashdot','USA','yes',18,0],
 
 # This class is just to hold the decision nodes, which decide the col, splitValue, results=labels for leaf nodes, and true/false branch is the number of nodes for each 
 # branch label.
+class ModelNode:
+    def __init__(self, id = None, col=-1, split=None, ):
+        self.col=col
+        self.split=split
+        self.id=id
+        
+        
 class decisionnode:
     def __init__(self, id = None, col=-1,value=None,results=None,tb=None,fb=None, ):
         self.col=col
@@ -32,7 +42,7 @@ class decisionnode:
         self.results=results
         self.tb=tb
         self.fb=fb
-        self.id=id
+        self.id=id        
 
         
 def divideset(rows,column,value):
@@ -187,6 +197,11 @@ def stoppingCriteria (rows, nodeId):
     
     return False
 
+# This is he predictionis the just the average of the row values
+def findPrediction (rows):
+    return average(rows)
+    
+
 
 def getChildNodeId (nodeId):
     depth = math.floor( math.log(nodeId,2) )
@@ -195,6 +210,101 @@ def getChildNodeId (nodeId):
     childNodeId = math.pow(2,depth+1) +  (nodeId - firstNodeAtPrev ) * 2 
     return int ( childNodeId )
 
+
+
+def controller (theData):
+    
+    #1.  while we have more loops, open file and readIds.  First time, we start from scratch
+    userDataFilePath = './data/modeldata.csv'
+    modelFile = planetModel.planetModel(userDataFilePath)
+    modelFile.flushFile()
+
+    
+    moreNodes = True
+    depth = 0
+    while (moreNodes):
+        
+        moreNodes = False
+        modelFile = planetModel.planetModel(userDataFilePath)
+        modelFile.readFile()
+        
+
+        
+    #2. For each id
+        applicableData = []
+        ids = []
+        if ( depth == 0):
+            ids = [1]    
+            modelFile.appendData(1, -1, -1)
+        else:
+            ids = modelFile.getNodeIdsAtDepth(depth)
+            
+        for id in ids:
+            if ( depth == 0):
+                applicableData = theData
+            else:
+                applicableData = []
+                #TBD get all nodes for this depth
+            #applicableData =
+         
+            #2b. Find applicable nodes
+     
+            #2c. find best split Mr jobs
+            modelNode = bestSplit(applicableData, id )            
+    
+            #2d. Write to file
+            if (modelNode.col != -1):
+                modelFile.addPredicate(modelNode.id, modelNode.col, modelNode.split)
+                modelFile.flushFile()
+                moreNodes = True
+            
+            #2d. increment stuff
+        depth = depth +1
+    
+    return 1
+    
+    
+def bestSplit(rows, nodeId, scoref=entropy):
+ 
+    if len(rows)==0: return ModelNode( )
+    
+    #Jag, increase the number of nodes allowed for pure node
+    if ( stoppingCriteria (rows, nodeId ) ):
+        return ModelNode(id=nodeId)
+         
+    current_score=scoref(rows)
+    
+    # Set up some variables to track the best criteria
+    # We just loop through each posibility to find the best split.
+    # Then we takes those sets and call recurively down to the children nodes.
+    best_gain=0.0
+    best_criteria=None
+    best_sets=None
+    column_count=len(rows[0])-1 
+    for col in range(0,column_count):
+    # Generate the list of different values in
+    # this column
+        column_values={}
+        for row in rows:
+            column_values[row[col]]=1
+        # Now try dividing the rows up for each value
+        # in this column
+        # This is a bit inefficient, it could sort values and find midpoint rather than this way.
+        for value in column_values.keys( ):
+            (set1,set2)=divideset(rows,col,value)
+        
+        # Information gain
+            gain=informationGain (current_score, rows, set1, set2)
+            if gain>best_gain and len(set1)>0 and len(set2)>0:
+                best_gain=gain
+                best_criteria=(col,value)
+                best_sets=(set1,set2)
+    # Create the subbranches
+    if best_gain>0:
+        return ModelNode( id=nodeId, col=best_criteria[0], split=best_criteria[1] )
+    else:
+        return ModelNode( id=nodeId )
+    
 
 # buildtree - main function for tree building
 # 
@@ -242,9 +352,9 @@ def buildtree(rows,nodeId,scoref=entropy):
         childNodeId = getChildNodeId(nodeId )
         trueBranch=buildtree(best_sets[0], childNodeId  ) 
         falseBranch=buildtree(best_sets[1], childNodeId + 1  ) 
-        return decisionnode( id=nodeId, col=best_criteria[0],value=best_criteria[1],tb=trueBranch,fb=falseBranch )
+        return decisionnode( id=nodeId, col=best_criteria[0],value=best_criteria[1],tb=trueBranch,fb=falseBranch ) # This is node that has choices
     else:
-        return decisionnode( id=nodeId, results=uniquecounts(rows) )
+        return decisionnode( id=nodeId, results=uniquecounts(rows) ) # this is a leaf node, we cannot do any better
 
 def printtree(tree,indent=''):
     
@@ -297,6 +407,13 @@ def main() :
     else :
         theData = my_data
 
+
+    # use map reduce version
+    controller(theData)
+    print "finished controller job succesfully"
+    
+    return 1
+    # This is the default buld treee
     startNodeId = 1 #level depth=0
     tree=buildtree(theData, startNodeId)
     printtree(tree)
@@ -311,6 +428,10 @@ def main() :
     print variance ( theData)
     print "average:"
     print average ( theData)
+    
+    #jag = planetModel.planetModel(6)
+    #number = jag.doMagic(5)
+    #print "jag" +  str ( number )    
     
 
 if __name__ == '__main__':
