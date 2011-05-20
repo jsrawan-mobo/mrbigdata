@@ -12,12 +12,13 @@ Scott
 Anil
 Sandeep
 
-
-
 ****** Eclipse notes:
 
 --- Libraries required
 Python : Numpy, Scipy 
+Graphviz : graphviz, python-graph, libgv-python, python-pygraphviz
+
+
 OS : mrjob, boto-dist
 Optional:
 
@@ -30,4 +31,25 @@ To add this mrbigplanet
 Do NOT select []copy project sinto workspace!!
 5) Click Finish
 6) Run the TBD by right clicking and selecting (python run).
+
+
+
+**** Required tools
+
+1) Fix graphviz for python, the following doesn't work
+import gz 
+
+To Check which python libs you have
+
+$ find /usr/lib/ -name "python"
+$ ll -d /usr/share/pyshared/*/
+
+link the libgv_python.so
+$ cd /usr/lib/pyshared/python2.6 mv
+$ sudo rm _gv.so
+$ sudo ln -s libgv_python.so _gv.so
+
+Add following to bashrc
+PATH="/usr/lib/pyshared/python2.6:$PATH"
+
 

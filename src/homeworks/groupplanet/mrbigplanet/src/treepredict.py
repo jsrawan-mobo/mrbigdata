@@ -1,9 +1,20 @@
 
+#import sys
+#sys.path.append('/usr/lib/pyshared/python2.6')
+#sys.path.append('/usr/lib/graphviz/python/')    # 32-bits
+#sys.path.append('/usr/lib64/graphviz/python/')  # 63-bits
 
 
 from optparse import OptionParser
 import json
 import math
+import gv 
+import Image
+#from gv import write
+#from gv import readstring
+from pygraph import graph
+from pygraph import digraph
+from pygraph.readwrite.dot import write
 
 
 from commonLib import planetModel
@@ -394,6 +405,50 @@ def printtree(tree,indent=''):
         print indent+'F->',
         printtree(tree.fb,indent+' ')
                     
+def testGraph():
+    gr = graph()
+    gr.add_nodes(["Portugal","Spain","France","Germany","Belgium","Netherlands","Italy"])
+    gr.add_nodes(["Switzerland","Austria","Denmark","Poland","Czech Republic","Slovakia","Hungary"])
+    gr.add_nodes(["England","Ireland","Scotland","Wales"])
+    
+    gr.add_edge("Portugal", "Spain")
+    gr.add_edge("Spain","France")
+    gr.add_edge("France","Belgium")
+    gr.add_edge("France","Germany")
+    gr.add_edge("France","Italy")
+    gr.add_edge("Belgium","Netherlands")
+    gr.add_edge("Germany","Belgium")
+    gr.add_edge("Germany","Netherlands")
+    gr.add_edge("England","Wales")
+    gr.add_edge("England","Scotland")
+    gr.add_edge("Scotland","Wales")
+    gr.add_edge("Switzerland","Austria")
+    gr.add_edge("Switzerland","Germany")
+    gr.add_edge("Switzerland","France")
+    gr.add_edge("Switzerland","Italy")
+    gr.add_edge("Austria","Germany")
+    gr.add_edge("Austria","Italy")
+    gr.add_edge("Austria","Czech Republic")
+    gr.add_edge("Austria","Slovakia")
+    gr.add_edge("Austria","Hungary")
+    gr.add_edge("Denmark","Germany")
+    gr.add_edge("Poland","Czech Republic")
+    gr.add_edge("Poland","Slovakia")
+    gr.add_edge("Poland","Germany")
+    gr.add_edge("Czech Republic","Slovakia")
+    gr.add_edge("Czech Republic","Germany")
+    gr.add_edge("Slovakia","Hungary")
+    
+    # Draw as PNG
+    with open("./country.viz", 'wb') as f:
+        dot = write(gr,f)
+        f.write(dot)
+        gvv = gv.readstring(dot)
+        gv.layout(gvv,'dot')
+        gv.render(gvv,'png','europe.png') 
+        Image.open('europe.png').show()
+    
+                        
 #main - run as 
 # python
 # import(treepredict)
@@ -404,7 +459,8 @@ def printtree(tree,indent=''):
 #
 # Commnad line example
 # python -c 'import treepredict; print treepredict.giniimpurity(treepredict.my_data)'        
-
+#
+# dotty bddTree.viz
 def main() :    
     
     parser = OptionParser(" Usage: treepredict --dataFile data/observations.json")
@@ -435,7 +491,7 @@ def main() :
     # use map reduce version
     controller(theData)
     print "finished controller job succesfully"
-    
+    testGraph()
     return 1
     # This is the default buld treee
     startNodeId = 1 #level depth=0
@@ -457,6 +513,7 @@ def main() :
     #number = jag.doMagic(5)
     #print "jag" +  str ( number )    
     
+             
 
 if __name__ == '__main__':
     main()

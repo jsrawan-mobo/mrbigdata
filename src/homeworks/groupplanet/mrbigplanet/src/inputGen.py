@@ -205,7 +205,7 @@ def main():
     
     #first run the initializer to get starting centroids
     
-    fileOut=open('./data/observation.json',"w") 
+    fileOut= open('./data/observation.json',"w") 
     outString = json.dumps( dataBDD )
     fileOut.write(outString)
                 
