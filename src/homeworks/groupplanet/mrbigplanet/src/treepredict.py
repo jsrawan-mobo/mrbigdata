@@ -18,6 +18,7 @@ from pygraph.readwrite.dot import write
 
 
 from commonLib import planetModel
+from commonLib import rowMath
 
 
 my_data =[['slashdot','USA','yes',18,0],
@@ -73,132 +74,6 @@ class decisionnode:
         self.fb=fb
         self.id=id        
 
-        
-def divideset(rows,column,value):
-        # Make a function that tells us if a row is in
-        # the first group (true) or the second group (false)
-        split_function=None
-        if isinstance(value,int) or isinstance(value,float):
-            split_function=lambda row:row[column]>=value  #note larger than equal to for left node.
-        else:
-            split_function=lambda row:row[column]==value
-        # Divide the rows into two sets and return them
-        set1=[row for row in rows if split_function(row)]
-        set2=[row for row in rows if not split_function(row)]
-        return (set1,set2)
-    
-# Create counts of possible results (the last column of
-# each row is the result)
-# Takes the class label, and does a count(label)
-# Return is a list of counts for each output label.
-# i.e. label1=10, label2=10
-def uniquecounts(rows):
-    results={}
-    for row in rows:
-    # The result is the last column
-        r=row[len(row)-1]
-        if r not in results: results[r]=0
-        results[r]+=1
-    return results
-    
-    
-# Probability that a randomly placed item will
-# be in the wrong category
-# This code is super wierd, instead of 1- sum-square impurities
-# It does dot product instead, but the numbers come out the same.
-def giniimpurity(rows):
-    total=len(rows)
-    counts=uniquecounts(rows)
-    imp=0
-    for k1 in counts:
-        p= math.pow((float(counts[k1])/total),2)
-        imp+=p
-    imp = 1- imp
-    return imp
-
-# Entropy is the sum of p(x)log(p(x)) across all
-# the different possible results
-def entropy(rows):
-    from math import log
-    log2=lambda x:log(x)/log(2)
-    results=uniquecounts(rows)
-    # Now calculate the entropy
-    ent=0.0
-    for r in results.keys( ):
-        p=float(results[r])/len(rows)
-        ent=ent-p*log2(p)
-    return ent
-
-# Perform variance on class lables for the given node
-# BestSplit = D * Var(D) -Dl*Var(Dl) + Dr+Var(Dr))
-# This is when output is numerical
-def splitVariance(parentRows, childL, childR):
-    
-    
-    magD = magnitude (parentRows )
-    magDl = magnitude (childL)
-    magDr = magnitude (childR )
-    varD  = variance(parentRows)
-    varDl = variance(childL)
-    varDr = variance(childR)
-    
-    
-    splitVar = magD * varD - ( magDl * varDl + magDr * varDr )
-    
-    return splitVar
-    
-    
-    
-# Take the last column and 
-def magnitude(rows, col = -1 ):
-    if (col == -1): 
-        col = len(rows[0]) - 1
-    mag = 0
-    for row in rows:
-        mag += math.pow( row[col] , 2)* 1.0
-    
-    n = len (rows)    
-    mag = math.sqrt(mag)
-    return mag   
-
-# Take the last column and 
-def variance(rows, col = -1 ):
-    if (col == -1): 
-        col = len(rows[0]) - 1
-    var = 0
-    for row in rows:
-        var += math.pow( row[col] , 2)* 1.0
-    
-    n = len (rows)    
-    var /= n-1
-    return var
-
-# Take the last column and 
-def average(rows, col = -1 ):
-    if (col == -1): 
-        col = len(rows[0]) - 1
-    avg = 0
-    for row in rows:
-        avg += row[col] * 1.0;
-    
-    n = len (rows)    
-    avg /= n
-    return avg
- 
- 
-    def log2(x):
-        return 0
-        
-
-# Information gain between parent and children
-# current score, is parent score.
-#
-
-def informationGain (parentScore, parentRows, childL, childR, scoref=entropy):
-
-    p=float(len(childL))/len(parentRows)
-    gain=parentScore-p*scoref(childL)-(1-p)*scoref(childR)
-    return gain;
 
 
 # Max depth of b-tree
@@ -210,7 +85,8 @@ def stoppingCriteria (rows, nodeId):
     MIN_INPUTS = 1
     MAX_DEPTH = 6
     
-    gini = giniimpurity(rows)
+    r = rowMath.rowMath(rows)
+    gini = r.giniimpurity()
     inputs = len(rows)
     
     depth = math.floor( math.log(nodeId,2) ) 
@@ -229,7 +105,8 @@ def stoppingCriteria (rows, nodeId):
 
 # This is he predictionis the just the average of the row values
 def findPrediction (rows):
-    return average(rows)
+    r = rowMath.rowMath(rows)
+    return r.average(rows)
     
 
 
@@ -302,6 +179,14 @@ def controller (theData):
 
     
     return 1
+
+def entropy(rows):
+        r = rowMath.rowMath(rows)
+        return r.entropy()
+        
+def uniquecounts(rows):
+        r = rowMath.rowMath(rows)
+        return r.uniquecounts()   
     
     
 def bestSplit(rows, nodeId, scoref=entropy):
@@ -332,10 +217,11 @@ def bestSplit(rows, nodeId, scoref=entropy):
         # in this column
         # This is a bit inefficient, it could sort values and find midpoint rather than this way.
         for value in column_values.keys( ):
-            (set1,set2)=divideset(rows,col,value)
+            r = rowMath.rowMath(rows)
+            (set1,set2)=r.divideset(col,value)
         
         # Information gain
-            gain=informationGain (current_score, rows, set1, set2)
+            gain=r.informationGain (current_score, set1, set2)
             if gain>best_gain and len(set1)>0 and len(set2)>0:
                 best_gain=gain
                 best_criteria=(col,value)
@@ -380,10 +266,11 @@ def buildtree(rows,nodeId,scoref=entropy):
         # in this column
         # This is a bit inefficient, it could sort values and find midpoint rather than this way.
         for value in column_values.keys( ):
-            (set1,set2)=divideset(rows,col,value)
+            r = rowMath.rowMath(rows)
+            (set1,set2)=r.divideset(col,value)
         
         # Information gain
-            gain=informationGain (current_score, rows, set1, set2)
+            gain= r.informationGain (current_score, set1, set2)
             if gain>best_gain and len(set1)>0 and len(set2)>0:
                 best_gain=gain
                 best_criteria=(col,value)
@@ -395,7 +282,8 @@ def buildtree(rows,nodeId,scoref=entropy):
         falseBranch=buildtree(best_sets[1], childNodeId + 1  ) 
         return decisionnode( id=nodeId, col=best_criteria[0],value=best_criteria[1],tb=trueBranch,fb=falseBranch ) # This is node that has choices
     else:
-        return decisionnode( id=nodeId, results=uniquecounts(rows) ) # this is a leaf node, we cannot do any better
+        r = rowMath.rowMath(rows)
+        return decisionnode( id=nodeId, results=r.uniquecounts() ) # this is a leaf node, we cannot do any better
 
 def printtree(tree,indent=''):
     
@@ -503,17 +391,18 @@ def main() :
     startNodeId = 1 #level depth=0
     tree=buildtree(theData, startNodeId)
     printtree(tree)
+    r = rowMath.rowMath(theData)
     print "Global Data"
     print "giniImpurity:"
-    print giniimpurity(theData)
+    print r.giniimpurity()
     print "entropy:"
-    print entropy ( theData)
+    print r.entropy ()
     print "magnitude:"
-    print magnitude ( theData)
+    print r.magnitude ()
     print "variance:"
-    print variance ( theData)
+    print r.variance ()
     print "average:"
-    print average ( theData)
+    print r.average ()
     
     #jag = planetModel.planetModel(6)
     #number = jag.doMagic(5)
