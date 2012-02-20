@@ -275,20 +275,22 @@ class planetModel(object):
                 
         parent = self.getDataRowById(parentId)
         attr = self.getNodeGraphAttr(parent, inputs)
-        gr.add_node( parentId, attr)
+
+        if (parentId == 1):        
+            gr.add_node( parentId, attr)  #duplicate?
         
         left = self.getDataRowById(lNodeId)
         if ( left != None ):
             attr = self.getNodeGraphAttr(left, inputs)
             gr.add_node( lNodeId,attr)
-            gr.add_edge(parentId, lNodeId, left[3], '')
+            gr.add_edge([parentId, lNodeId], left[3], '')
             self.addGraphNode(lNodeId, gr, inputs)
         
         right = self.getDataRowById(rNodeId) 
         if ( right != None ):
             attr = self.getNodeGraphAttr(right, inputs)            
             gr.add_node( rNodeId, attr)         
-            gr.add_edge(parentId, rNodeId, right[3], '')  
+            gr.add_edge([parentId, rNodeId], right[3], '')  
             self.addGraphNode(rNodeId, gr, inputs)
     
     # draws graph based on the nodes.  The edges are determined automatially from the nodeIds.

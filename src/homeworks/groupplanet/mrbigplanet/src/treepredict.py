@@ -196,6 +196,11 @@ def controller (theData):
 def entropy(rows):
         r = rowMath.rowMath(rows)
         return r.entropy()
+
+def giniimpurity(rows):
+        r = rowMath.rowMath(rows)
+        return r.giniimpurity()
+        
         
 def uniquecounts(rows):
         r = rowMath.rowMath(rows)
