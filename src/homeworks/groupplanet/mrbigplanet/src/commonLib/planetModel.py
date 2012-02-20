@@ -20,10 +20,10 @@ from operator import itemgetter
 import csv
 import gv 
 from commonLib import rowMath 
-from pygraph import graph
-from pygraph import digraph
-from pygraph.readwrite.dot import write
+from pygraph.classes.graph import graph
+from pygraph.classes.digraph import digraph
 from pygraph.algorithms.searching import breadth_first_search
+from pygraph.readwrite.dot import write
 
 
 def collect(l, index):

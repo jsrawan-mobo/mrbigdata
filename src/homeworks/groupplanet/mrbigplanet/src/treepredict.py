@@ -1,20 +1,33 @@
 
-#import sys
-#sys.path.append('/usr/lib/pyshared/python2.6')
-#sys.path.append('/usr/lib/graphviz/python/')    # 32-bits
-#sys.path.append('/usr/lib64/graphviz/python/')  # 63-bits
+# import sys
+# sys.path.append('/usr/lib/pyshared/python2.6')
+# sys.path.append('/usr/lib/graphviz/python/')    # 32-bits
+# sys.path.append('/usr/lib64/graphviz/python/')  # 63-bits
+# sys.path.append('/usr/lib/pyshared/python2.6/pygraphviz')   #graph
+# import gv 
 
+import sys
+sys.path.append('..')
+sys.path.append('/usr/lib/graphviz/python/')
+sys.path.append('/usr/lib64/graphviz/python/')
+import gv
 
 from optparse import OptionParser
 import json
 import math
-import gv 
+
+# Import pygraph
+from pygraph.classes.graph import graph
+from pygraph.classes.digraph import digraph
+from pygraph.algorithms.searching import breadth_first_search
+from pygraph.readwrite.dot import write
+
 import Image
 #from gv import write
 #from gv import readstring
-from pygraph import graph
-from pygraph import digraph
-from pygraph.readwrite.dot import write
+#from pygraph import graph
+#from pygraph import digraph
+#from pygraph.readwrite.dot import write
 
 
 from commonLib import planetModel
@@ -345,15 +358,15 @@ def testGraph():
                         
 #main - run as 
 # python
-# import(treepredict)
-# reload(treepredict)
-# treepredict.giniimpurity(treepredict.my_data)
+# import treepredict
+# reload treepredict 
 # treepredict.entropy ( treepredict.my_data)
 # set1,set2=treepredict.divideset ( treepredict.my_data, 2, 'yes') 
 #
 # Commnad line example
-# python -c 'import treepredict; print treepredict.giniimpurity(treepredict.my_data)'        
-#
+# python -c 'import treepredict; print treepredict.entropy ( treepredict.my_data)'        
+#  python treepredict.py --dataFile data/observation.json
+
 # dotty bddTree.viz
 def main() :    
     
