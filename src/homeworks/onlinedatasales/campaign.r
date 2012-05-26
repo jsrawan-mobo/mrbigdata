@@ -1,4 +1,19 @@
-setwd("/home/mike-bowles/Downloads/campaignData/")
+#
+#
+# Use gradient boosted tree's
+#
+# Rev1 - Try to use a small subset of data 
+#
+#
+#
+# Rev2- Try to use all data then.
+#
+#
+#
+#
+
+
+
 data <- read.table(file="TrainingDataset.csv",header=TRUE, sep=",")
 str(data)
 require(gbm)
