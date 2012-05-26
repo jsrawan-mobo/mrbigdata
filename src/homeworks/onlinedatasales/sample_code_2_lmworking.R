@@ -124,57 +124,38 @@ library(splines)
 data_set <- training
 tCol = ncol(data_set)
 diff = ( data_set[,14] - data_set[,19] ) /24
-
 X = cleanNAs ( data_set[,18:18] )
+Y = cleanNAs ( rowSums ( data_set[,1:12] ) )
+nCol = ncol(X)
+Index <- 1:nrow(X)
+
+x = as.matrix(X)
+y = as.matrix(Y)
 
 
-all_coeff <- matrix(nrow = 12, ncol = 2)
-
-for ( yCol in 1:12 ) {
-	
-	Y = cleanNAs ( data_set[ ,yCol:yCol] )
-	nCol = ncol(X)
- 
-
-	x = as.matrix(X)
-	y = as.matrix(Y)
-
-
-	C2 = cor(x, y)
-	sort(C2)
-	print(C2)
-	which.max(C2)
-	#plot(x, y, main="Colxx vs Quant_4")
-	fitX <- lm(y ~ x)
-	#abline(fitX, lty=2, lwd=2, col="red")
-	#summary(fitX)
-	#plot(1:nrow(fitX$fitted),fitX$fitted)
-	#names(fitX$fitted)
-	#text(1:nrow(fitX$fitted),fitX$fitted, names(fitX$fitted), cex=0.6, pos=4, col="red") 
-	#residuals(fitX)
-	all_coeff[yCol,1]<- fitX$coefficients[1]
-	all_coeff[yCol,2]<- fitX$coefficients[2]
-	
-}
-
+C2 = cor(x, y)
+sort(C2)
+print(C2)
+which.max(C2)
+plot(x, y, main="Sum of Sales vs days between advertising")
+fitX <- lm(y ~ x)
+abline(fitX, lty=2, lwd=2, col="red")
+summary(fitX)
+plot(1:nrow(fitX$fitted),fitX$fitted)
+names(fitX$fitted)
+text(1:nrow(fitX$fitted),fitX$fitted, names(fitX$fitted), cex=0.6, pos=4, col="red") 
+residuals(fitX)
 
 
 cleanedTest =  cleanNAs(test)
 
 fitX$coefficients
-nRows = nrow(cleanedTest) 
-yHat <- matrix(nrow = nRows, ncol = 13)
-
-for (j in 1:13 ) {
-	
-	for( i in 1:nrow(cleanedTest) ) {
-		yHat[i,1] = i
-		yHat[i, j+1]  <- all_coeff[j,1] + all_coeff[j,2] * cleanedTest[i,7]
-	}
+yHat <- rep (0.0, nrow(cleanedTest) )
+for(i in 1:nrow(cleanedTest)) {
+	yHat[i]  <- fitX$coefficients[1] + fitX$coefficients[2] * cleanedTest[i,7]
 }
 yHat
 plot(yHat)
-write.csv(yHat, "bloodsweatandtears.csv", row.names=FALSE)
 
 
 linearCVObject = cv.glmnet (x, y, alpha=1)
