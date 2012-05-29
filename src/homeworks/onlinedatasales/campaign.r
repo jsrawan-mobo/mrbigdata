@@ -9,7 +9,9 @@
 # Rev2- Try to use all data then.
 #
 #
+# Rev3 - predict the sum
 #
+# Rev4 - predict the
 #
 require(gbm)
 

@@ -20,69 +20,69 @@
 # Decay function from month to month.
 # % of the total at of the end of the month
 #
+#  Factor  - NA with "a" leave alone
+#  Numeric - replace with -1 for numeric, add the column
+#
 #
 #
 
 library(ggplot2)
 library(calibrate)
 library(grid)
+library(stats)
 rm(list=ls())
+
+stats <- function(x) {
+	ans <- boxplot.stats(x)
+	data.frame(ymin = ans$conf[1], ymax = ans$conf[2])
+}
+
+vgrid <- function(x,y) {
+	viewport(layout.pos.row = x, layout.pos.col = y)
+}
+
+
 
 training = read.csv("TrainingDataset.csv", na.strings="NaN")
 test = read.csv("TestDataset.csv", na.strings="NaN")
 
-wine_raw = training
 
-#wine_raw <- read.table(file="winequality-red.txt",  sep=';', header=T)
-#data_set_frame <- data.frame(
-#	data_set = wine_raw,
-#	xValue = 1:1599
-	)
-
- 
-#
 # The box plot gives us the distribution
 # the box lower, middle, upper gives the 25%, mean, 75%
 # the black line gives you the 10%, 90%.  The dots are out of range.
 # Doesn't handle floating point values
+# Output data
 
-nCol = 1
-pushViewport( viewport(layout=grid.layout(1,nCol)) )
-
-for(iCol in 1:nCol){
+nCol = 12
+start = 2
+pushViewport(viewport(layout=grid.layout(1,nCol)))
+for(iCol in start:(nCol+start-1) ){
 	
-	name = names(wine_raw)[iCol]
+	name = names(training)[iCol]
 	print(name)
-	data_col = wine_raw[,iCol]
-	p <- ggplot(data=wine_raw, aes(name, data_col )) + 
+	data_col = training[,iCol]
+	p <- ggplot(data=training, aes(name, data_col )) + 
 		geom_boxplot(notch = TRUE, notchwidth = 0.5) +
 		stat_summary(fun.data = stats, geom = "linerange", colour = "skyblue", size = 5)
 	q = list(p)
-	print(q[[1]], vp=vgrid(1,iCol))
+	print(q[[1]], vp=vgrid(1, iCol-start+1))
 }
 
 
-
-
-#Sample submission-- column means
-submission_colMeans = data.frame(id = test[,1])
-for (var in names(training)[1:12]) {
-  submission_colMeans[,var] = mean(training[,var], na.rm=TRUE)
-}
-write.csv(submission_colMeans, "sample_submission_using_training_column_means.csv", row.names=FALSE)
-
-
-#randomForest benchmark submission:
-library(randomForest)
-
-#function for adding NAs indicators to dataframe and replacing NA's with a value---"cols" is vector of columns to operate on
-#   (necessary for randomForest package)
-appendNAs <- function(dataset, cols) {
-  append_these = data.frame( is.na(dataset[, cols] ))
-  names(append_these) = paste(names(append_these), "NA", sep = "_")
-  dataset = cbind(dataset, append_these)
-  dataset[is.na(dataset)] = -1
-  return(dataset)
+# Output data
+nCol = 12
+start = 2
+pushViewport(viewport(layout=grid.layout(1,nCol)))
+for(iCol in start:(nCol+start-1) ){
+	
+	name = names(training)[iCol]
+	print(name)
+	data_col = training[,iCol]
+	p <- ggplot(data=training, aes(name, data_col )) + 
+		geom_boxplot(notch = TRUE, notchwidth = 0.5) +
+		stat_summary(fun.data = stats, geom = "linerange", colour = "skyblue", size = 5)
+	q = list(p)
+	print(q[[1]], vp=vgrid(1, iCol-start+1))
 }
 
 
@@ -93,26 +93,12 @@ cleanNAs <- function(dataset, cols) {
 	return(dataset)
 }
 
-
-
-
-
 #replacements:
 trainingCleaned <- appendNAs(training,13:ncol(training))
 testCleaned <- appendNAs(test,2:ncol(test))
 
 #begin building submission data frame:
 submission_rf = data.frame(id = test$id)
-
-#train a random forest (and make predictions with it) for each prediction column
-for (var in names(training)[1:12]) {
-  print(var)
-  rf = randomForest(training[,13:ncol(training)],training[,var], do.trace=TRUE,importance=TRUE, sampsize = 100, ntree = 500)
-  submission_rf[,var] = predict(rf, test[,2:ncol(test)])
-}
-
-write.csv(submission_rf, "RandomForestBenchmark.csv", row.names=FALSE)
-
 
 library(ggplot2)
 library(calibrate)
@@ -146,8 +132,8 @@ names(fitX$fitted)
 text(1:nrow(fitX$fitted),fitX$fitted, names(fitX$fitted), cex=0.6, pos=4, col="red") 
 residuals(fitX)
 
-
 cleanedTest =  cleanNAs(test)
+
 
 fitX$coefficients
 yHat <- rep (0.0, nrow(cleanedTest) )
@@ -157,6 +143,12 @@ for(i in 1:nrow(cleanedTest)) {
 yHat
 plot(yHat)
 
+
+### Now check do a error per column and look for outlier
+bloodsweatandtear = read.csv("bloodsweatandtears.csv")
+
+errorMatrix = ( bloodsweatandtear - yHat)
+print (errorMatrix)
 
 linearCVObject = cv.glmnet (x, y, alpha=1)
 #linearCVObject$cvm = glmnet.cv(x,y. )
