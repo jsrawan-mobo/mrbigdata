@@ -6,12 +6,12 @@
 #
 #
 #
-# Rev2- Try to use all data then.
+# Rev2 - Try to use all data and train over the set
 #
 #
 # Rev3 - predict the sum
 #
-# Rev4 - predict the
+# Rev4 - Use the time series to predict the output and % change.
 #
 require(gbm)
 
