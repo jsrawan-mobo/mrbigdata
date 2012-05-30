@@ -53,7 +53,7 @@ cleanInputDataForGBM <- function(X) {
 	return (X)
 }
 
-idxCat <- c(13,29)
+idxCat <- c(13,558)
 
 training <- read.table(file="TrainingDataset.csv",header=TRUE, sep=",")
 Xtrain <- training[, idxCat[1] : idxCat[2] ]
@@ -77,8 +77,8 @@ folds <- 10
 Ynames <-   c('id', names(training[,1:12]))
 
 ## Setup variables.
-ntestrows = nrow(xtestClean)
-Yhattest =  matrix(nrow = testrows , ncol = 13, dimnames = list (1:ntestrows,Ynames ) )
+ntestrows = nrow(XtestClean)
+Yhattest =  matrix(nrow = ntestrows , ncol = 13, dimnames = list (1:ntestrows,Ynames ) )
 X = XtrainClean
 nColsOutput = 12
   
@@ -108,7 +108,7 @@ for( i in 1:nColsOutput ) {
 	sqrt(min(mo1gbm$cv.error))
 	which.min(mo1gbm$cv.error)
  	
- 	Yhattest[,i+1] <- exp(predict.gbm(mo1gbm, newdata=xtestClean, n.trees = ntrees))
+ 	Yhattest[,i+1] <- exp(predict.gbm(mo1gbm, newdata=XtestClean, n.trees = ntrees))
  	
 }
 
