@@ -1,3 +1,11 @@
+
+#
+#
+# Submitted at 5.1 RMLSE =
+# Same as campaign 4_2 but with cross-validation loop
+#
+#
+
 rm(list=ls())
 require(gbm)
 
@@ -34,7 +42,6 @@ cleanInputDataForGBM <- function(X) {
   return (X)
 }
 
-
 computeRMSLE <- function(Ysimulated, Yreal) {
   
   #pick every 3rd row
@@ -51,7 +58,7 @@ computeRMSLE <- function(Ysimulated, Yreal) {
   
   #perform calculations
   Ysimulated <- log(Ysimulated + 1)
-  Yreal <- log(Yreal + 1)
+  Yreal <- log(Yreal + 1)  
   
   #n <- nrow(Yreal) * ncol(Yreal)
     
@@ -63,7 +70,7 @@ computeRMSLE <- function(Ysimulated, Yreal) {
 }
 
 #setup data
-setwd("C:\\Projects\\R")
+#setwd("C:\\Projects\\R")
 data <- read.table(file="TrainingDataset.csv",header=TRUE, sep=",")
 testData <- read.table(file="TestDataset.csv",header=TRUE, sep=",")
 
@@ -90,11 +97,12 @@ X <- cleanInputDataForGBM(X)
 #train and cross-validate the model using 10-fold cv
 numberOfRows <- nrow(X)
 numberOfXColumns <- ncol(X)
-rmsles <- rep(0, 10)
+numFolds = 10
+rmsles <- rep(0, numFolds)
 
-for(cvFold in 1:10){
+for(cvFold in 1:numFolds){
   #split the input space into training and test data
-  testRows <- seq(from=cvFold, to=numberOfRows, by=10)
+  testRows <- seq(from=cvFold, to=numberOfRows, by=numFolds)
   XCVTest <- X[testRows, 1:numberOfXColumns]
   XCVTrain <- X[-testRows, 1:numberOfXColumns]
 
@@ -103,7 +111,7 @@ for(cvFold in 1:10){
   
   #estimate and predict total sales for data in the training set
   gdata <- cbind(YCVTrain,XCVTrain)
-  ntrees <- 4000
+  ntrees <- 500
   depth <- 5
   minObs <- 10
   shrink <- 0.001
@@ -145,10 +153,12 @@ for(cvFold in 1:10){
     YCVTestPredictedMonthly[,i] <- monthlySalesOfTotal * YCVTestPredictedAnnual
   }
   
+  
+  # CV folds to actual.
   YCVTestExpectedMonthlySales <- YMonthlySales[testRows,]
   YCVTestExpectedMonthlySales[is.na(YCVTestExpectedMonthlySales)] <- 0.0
   rmsles[cvFold] <- computeRMSLE(exp(YCVTestPredictedMonthly), exp(YCVTestExpectedMonthlySales))
   
 }
 
-cvError <- sum(rmsles)/10
+cvError <- sum(rmsles)/numFolds
