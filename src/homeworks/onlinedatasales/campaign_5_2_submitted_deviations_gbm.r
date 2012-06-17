@@ -84,7 +84,7 @@ Xtrain <- cbind(Xtrain, daysbetweencampaignsTrain)
 
 #
 #
-daysbetweencampaignsTest <- as.numeric(Xtest[,2]-testData[,7])
+daysbetweencampaignsTest <- as.numeric(Xtest[,2]-Xtest[,7])
 daysbetweencampaignsTest[is.na(daysbetweencampaignsTest)] <- 0.0
 Xtest <- cbind(Xtest, daysbetweencampaignsTest)
 
@@ -123,14 +123,14 @@ plot(frac)
 
 # Model to predice total sales
 # estimate and predict total sales as function of x
-gdata <- cbind(YTotalSalesTrain, XtrainClean)
+gdata <- cbind(YTotalSalesTrain), XtrainClean)
 ntrees <- 4000
 depth <- 5
 minObs <- 10
 shrink <- 0.001
 folds <- 10
 
-mo1gbm <- gbm(YTotalSalesTrain~. ,data=gdata,
+mo1gbm <- gbm(exp(YTotalSalesTrain)~. ,data=gdata,
               distribution = "gaussian",
               n.trees = ntrees,
               shrinkage = shrink,
@@ -138,7 +138,7 @@ mo1gbm <- gbm(YTotalSalesTrain~. ,data=gdata,
 
 gbm.perf(mo1gbm,method="cv")
 
-# Cross Validation error
+# Cross Validation error is is using the log.  
 mo1gbm$cv.error
 
 
@@ -149,8 +149,14 @@ YPredictedAnnualTrain <- predict.gbm(mo1gbm, newdata=XtrainClean, n.trees = ntre
 rmlseOfTotalSales = computeRMSLE( exp(YPredictedAnnualTrain), exp(YTotalSalesTrain) )
 rmlseOfTotalSales
 
+exp(YPredictedAnnualTrain)
+
 Yhattest <- matrix(nrow = ntestRows, ncol = 12)
 Yhattrain <- matrix(nrow = ntrainRows, ncol = 12)
+
+YDeviationThisMonth <- exp(YMonthlySalesTrain[,1])/exp(YTotalSalesTrain) - frac[1]
+
+
 
 #now estimate and predict deviations from the "average" monthly portions of the total
 for( i in 1:12 ) {
