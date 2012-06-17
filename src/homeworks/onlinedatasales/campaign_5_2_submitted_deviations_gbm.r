@@ -154,11 +154,16 @@ for( i in 1:12 ) {
   
   #apply the model
   monthlySalesDeviationFromAverage <- predict.gbm(mo2gbm, newdata=Xtest, n.trees = ntrees)
+   
   #save monthly sales prediction
-  Ytest[,i] <- monthlySalesDeviationFromAverage * exp(YPredictedAnnual) + frac[i] * exp(YPredictedAnnual)
+  Ytest[,i] <- monthlySalesDeviationFromAverage * exp(YPredictedAnnualTest) + frac[i] * exp(YPredictedAnnualTest)
+    gc()
 }
 
 #cvError <- sum(rmsles)/10
 indices = seq(1,ntestRows,1)
 Ytest <- cbind(indices,Ytest)
 write.csv(Ytest, "campaign_5_deviations_gbm.csv", row.names=FALSE)
+
+
+
