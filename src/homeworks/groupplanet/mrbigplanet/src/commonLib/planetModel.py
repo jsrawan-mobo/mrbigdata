@@ -19,7 +19,7 @@ from random import seed
 from operator import itemgetter
 import csv
 import gv 
-from commonLib import rowMath 
+import rowMath
 from pygraph.classes.graph import graph
 from pygraph.classes.digraph import digraph
 from pygraph.algorithms.searching import breadth_first_search

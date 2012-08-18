@@ -1,27 +1,11 @@
-
-# import sys
-# sys.path.append('/usr/lib/pyshared/python2.6')
-# sys.path.append('/usr/lib/graphviz/python/')    # 32-bits
-# sys.path.append('/usr/lib64/graphviz/python/')  # 63-bits
-# sys.path.append('/usr/lib/pyshared/python2.6/pygraphviz')   #graph
-# import gv 
-
 import gv
 from optparse import OptionParser
 import json
 import math
 
-# Import pygraph
-from pygraph.classes.graph import graph
-from pygraph.classes.digraph import digraph
-from pygraph.algorithms.searching import breadth_first_search
-from pygraph.readwrite.dot import write
 
 import Image
 from gv import write
-from gv import readstring
-
-
 
 from commonLib import planetModel
 from commonLib import rowMath
@@ -373,9 +357,9 @@ def main() :
                             help='Pass in a user generated file')
 
     (options, args) = parser.parse_args()
-    print options;
-    
-    if ( options.dataFile <> None ) :
+    print options
+
+    if options.dataFile is not None:
         print "yes"
         filePath = options.dataFile; 
         fileIn = open(filePath)
