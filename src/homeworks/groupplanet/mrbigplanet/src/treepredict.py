@@ -6,12 +6,7 @@
 # sys.path.append('/usr/lib/pyshared/python2.6/pygraphviz')   #graph
 # import gv 
 
-import sys
-sys.path.append('..')
-sys.path.append('/usr/lib/graphviz/python/')
-sys.path.append('/usr/lib64/graphviz/python/')
 import gv
-
 from optparse import OptionParser
 import json
 import math
@@ -23,11 +18,9 @@ from pygraph.algorithms.searching import breadth_first_search
 from pygraph.readwrite.dot import write
 
 import Image
-#from gv import write
-#from gv import readstring
-#from pygraph import graph
-#from pygraph import digraph
-#from pygraph.readwrite.dot import write
+from gv import write
+from gv import readstring
+
 
 
 from commonLib import planetModel
