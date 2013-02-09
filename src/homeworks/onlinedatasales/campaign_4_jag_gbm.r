@@ -29,7 +29,7 @@
 #
 rm(list=ls())
 require(gbm)
- 
+
 
 
 # Give it a the estimator and real value.  Will return the RMLSE calculation. This is on training set 
@@ -153,19 +153,19 @@ for( i in 1:nColsOutput ) {
  	Y <- as.numeric(training[,i])
 	Y <- log(Y)  ## TBD how does this get reconciled?
 	Y[is.na(Y)] <- 0.0	
-	#gdata <- cbind(Y,X)
+	gdata <- cbind(Y,X)
 	
 	
-	mo1gbm <- gbm.fit(x=X, y=Y,
-				  #data=gdata,
+	mo1gbm <- gbm(Y~. ,
+				  data=gdata,
 	              distribution = "gaussian",
 	              n.trees = ntrees,
 	              shrinkage = shrink,
-	              #cv.folds = folds, 
+	              cv.folds = folds, 
 				  verbose = TRUE)
 	
 	
-	#gbm.perf(mo1gbm,method="cv")
+	gbm.perf(mo1gbm,method="cv")
 	
 	
 	sqrt(min(mo1gbm$cv.error))
@@ -180,6 +180,8 @@ for( i in 1:nColsOutput ) {
 end = date()
 end
 Yhattest[,1] <- seq(1,ntestrows,1)
+Yhattrain[,1] <- seq(1,ntrainrows,1)
+
 
 ## Calculate total training error
 YhattrainRMLSE <- Yhattrain[,2:13]
@@ -194,6 +196,8 @@ rmsle
 
 
 #2. 
+
+write.csv(Yhattrain, "campaign_4_jag_gbm_train.csv", row.names=FALSE)
 
 
 write.csv(Yhattest, "campaign_4_jag_gbm.csv", row.names=FALSE)

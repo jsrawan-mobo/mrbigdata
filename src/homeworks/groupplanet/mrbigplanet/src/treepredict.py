@@ -9,6 +9,7 @@ from gv import write
 
 from commonLib import planetModel
 from commonLib import rowMath
+from pygraph.classes.graph import graph
 
 
 my_data =[['slashdot','USA','yes',18,0],

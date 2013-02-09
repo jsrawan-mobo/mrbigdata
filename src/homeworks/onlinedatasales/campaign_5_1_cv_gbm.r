@@ -1,11 +1,9 @@
-
 #
 #
 # Submitted at 5.1 RMLSE =
 # Same as campaign 4_2 but with cross-validation loop
 #
 #
-
 rm(list=ls())
 require(gbm)
 

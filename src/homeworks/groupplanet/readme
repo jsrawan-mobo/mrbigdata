@@ -19,6 +19,15 @@ Python : Numpy, Scipy
 Graphviz : graphviz, python-graph, libgv-python, python-pygraphviz
 
 
+sudo pip install python-graph-core
+sudo pip install python-graph-dot
+sudo pip install pygraphviz
+sudo pip install mrjob
+sudo pip install boto
+sudo apt-get install graphviz
+sudo apt-get install libgraphviz-devel
+sudo apt-get install libgv-python
+
 OS : mrjob, boto-dist
 Optional:
 
