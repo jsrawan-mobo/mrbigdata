@@ -8,8 +8,6 @@ Has 474,434 json records, one per line
  cat yelp_academic_dataset.json | grep -ie '"type": "business"' > yelp_business_all.json
  cat yelp_academic_dataset.json | grep -ie '"type": "user"' > yelp_user_all.json
  cat yelp_academic_dataset.json | grep -ie '"type": "review"' > yelp_review_all.json
-
-
 wc -l to get lines.
 
 Business - 13490
@@ -60,7 +58,7 @@ Also look at obvious avg, std, max, min for parameters like lat,long and other o
 
 
 
-Steps : 
+***********************Design*******************************
 
 1) Generate a set of Business, list(user_id, rating))
 Input : Reviews
@@ -90,6 +88,10 @@ Outputs: Kx,Ky
 
 
 
+***********************Running*******************************
+
+python yelp_generatedata.py < yelp_academic_dataset.json > data/rating_vectors.txt
+python yelp_initializecanopy.py < data/rating_vectors.txt > data/canopy.txt
 
 
 

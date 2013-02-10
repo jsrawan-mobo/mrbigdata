@@ -35,6 +35,8 @@ class InitializeCanopy(MRJob):
         Key - is the business: or user:
         Value - the set of ratings for the user/business
         """
+
+        print key, value
         if not key[1:19] == "business:":
             return
 
@@ -69,4 +71,4 @@ class InitializeCanopy(MRJob):
 
 
 if __name__ == '__main__':
-    MRkMeansInit.run()
+    InitializeCanopy.run()

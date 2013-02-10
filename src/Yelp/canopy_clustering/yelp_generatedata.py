@@ -45,7 +45,7 @@ class YelpGenerateData(MRJob):
             x = json.loads(xj)
             items.append(x)
 
-        yield key, items
+        yield (key,items)
 
 if __name__ == '__main__':
     YelpGenerateData.run()
