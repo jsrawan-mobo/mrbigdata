@@ -40,7 +40,6 @@ class InitializeCanopy(MRJob):
         #Stupid thing does not split on tabs.
         key, value = value.split("\t")
         type,id = key.replace('"','').split(":")
-
         if type != "business":
             return
 
@@ -50,13 +49,16 @@ class InitializeCanopy(MRJob):
         for center in self.canopy:
             t1 = CorrelationMr.jaccard_full(rating_vector, center["rating_vector"])
 
-            if t1 < T1_Business:
+            if t1 > T1_Business:
+                #print "isCovered"
                 covered = True
+                center["count"] += 1
+
 
         if not covered:
-            print id, rating_vector
-            self.canopy.append( { 'business':id, 'rating_vector':rating_vector } )
-
+            #print id, rating_vector
+            self.canopy.append( { 'business':id, 'rating_vector':rating_vector, "count" : 1 } )
+        if False: yield 1,2
 
 
     def mapper_final(self):
@@ -69,19 +71,17 @@ class InitializeCanopy(MRJob):
         """
 
         for center in self.canopy:
-            print center
-            yield center['business'], json.dumps(center["rating_vector"])
+            yield 1, json.dumps(center)
         
     def reducer(self, key, value):
         """
         Write unique set of canopy centers
         """
 
-        for rating_vector in value:
-            rating_vector_data = json.loads(rating_vector)
+        for center in value:
+            center_data = json.loads(center)
             #print "reducer:%s,%s" % (key, value)
-
-        yield key, rating_vector_data
+            yield "business:%s" % center_data["business"], {'count': center_data['count'] , 'rating_vectors' : center_data["rating_vector"]}
 
 
 if __name__ == '__main__':
