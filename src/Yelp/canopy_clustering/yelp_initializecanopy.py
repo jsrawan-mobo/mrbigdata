@@ -39,19 +39,23 @@ class InitializeCanopy(MRJob):
 
         #Stupid thing does not split on tabs.
         key, value = value.split("\t")
+        type,id = key.replace('"','').split(":")
 
-        if not key[1:19] == "business:":
+        if type != "business":
             return
 
-        row = json.loads(value)
+        rating_vector = json.loads(value)
 
         covered = False
         for center in self.canopy:
-            if CorrelationMr.jaccard_full(value, center["value"]) < T1_Business:
+            t1 = CorrelationMr.jaccard_full(rating_vector, center["rating_vector"])
+
+            if t1 < T1_Business:
                 covered = True
 
-        if not covered == 0:
-            self.canopy.append( { 'business':key, 'value':row } )
+        if not covered:
+            print id, rating_vector
+            self.canopy.append( { 'business':id, 'rating_vector':rating_vector } )
 
 
 
@@ -59,18 +63,25 @@ class InitializeCanopy(MRJob):
         """
         Here we yield the canopies and the centers
         Should we reduce the centers.
+
+        Should we merge the users?? into a single vector for the canopy?
+        Because the center
         """
 
         for center in self.canopy:
-            yield center['business'], json.dumps(center["value"])
+            print center
+            yield center['business'], json.dumps(center["rating_vector"])
         
-    def reducer(self, center, value):
+    def reducer(self, key, value):
         """
         Write unique set of canopy centers
         """
-        center_data = json.loads(value)
 
-        yield center, center_data
+        for rating_vector in value:
+            rating_vector_data = json.loads(rating_vector)
+            #print "reducer:%s,%s" % (key, value)
+
+        yield key, rating_vector_data
 
 
 if __name__ == '__main__':
