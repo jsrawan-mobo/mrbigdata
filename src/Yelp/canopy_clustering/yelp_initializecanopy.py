@@ -64,7 +64,7 @@ class InitializeCanopy(MRJob):
 
         if not covered:
             #print id, rating_vector
-            self.canopy.append(  [ 'business:%s' % id,  {'rating_vector':rating_vector, "count" : 1 } ] )
+            self.canopy.append(  [ id,  {'rating_vector':rating_vector, "count" : 1 } ] )
         if False: yield 1,2
 
 
@@ -94,6 +94,7 @@ class InitializeCanopy(MRJob):
 
         fullPath = os.path.join(self.options.pathName, 'canopy_centers_1.txt')
         fileOut = open(fullPath,'w')
+        #TODO, we should pretty format this, even though its a big dictionary.
         fileOut.write(json.dumps(canopy_cent))
         fileOut.close()
 
