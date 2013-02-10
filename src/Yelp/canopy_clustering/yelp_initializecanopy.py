@@ -9,6 +9,7 @@ Output: Cx,Cy => list(user,ratings)
 """
 import os
 from mrjob.job import MRJob
+from mrjob.protocol import RawValueProtocol
 
 from numpy import mat, zeros, shape, random, array, zeros_like
 from random import sample
@@ -20,7 +21,7 @@ from corr import CorrelationMr
 PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
 
 class InitializeCanopy(MRJob):
-    DEFAULT_PROTOCOL = 'json'
+    DEFAULT_PROTOCOL = RawValueProtocol
     
     def __init__(self, *args, **kwargs):
         super(InitializeCanopy, self).__init__(*args, **kwargs)
@@ -36,7 +37,9 @@ class InitializeCanopy(MRJob):
         Value - the set of ratings for the user/business
         """
 
-        print key, value
+        #Stupid thing does not split on tabs.
+        key, value = value.split("\t")
+
         if not key[1:19] == "business:":
             return
 
