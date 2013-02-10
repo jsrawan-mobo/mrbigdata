@@ -94,6 +94,10 @@ python yelp_generatedata.py < yelp_academic_dataset.json > data/rating_vectors.t
 python yelp_initializecanopy.py < data/rating_vectors.txt > data/canopy.txt
 
 
+Figuring out various things
+
+i) Distribution of lat/long (run it twice, and put average in)
+cat ../data/yelp_business_all.json | cut -d ":" -f18 | cut -d "," -f1 | awk '{if(min==""){min=max=$0}; if($0>max) {max=$0}; if($0< min) {min=$0}; total+=$0; count+=1; stdev=($count-38.288)^2} END {print "Average",total/count, "Min",min, "Max=",max, "stdev=",sqrt(stdev/count)'}
 
 
 

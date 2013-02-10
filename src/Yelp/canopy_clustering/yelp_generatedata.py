@@ -30,20 +30,21 @@ class YelpGenerateData(MRJob):
         row = json.loads(value)
         if row["type"] == "review":
             business_key ="business:%s" % row['business_id']
-            yield (business_key, json.dumps( [ row["user_id"], row["stars"] ] ) )
+            yield (business_key, [ row["user_id"], row["stars"] ] )
 
             user_key ="user:%s" % row['user_id']
-            yield (user_key,  json.dumps( [ row["business_id"], row["stars"] ] ) )
+            yield (user_key,  [ row["business_id"], row["stars"] ] )
 
 
     def reducer(self, key, xjIn):
         """
         Now just yield the key and all of its values in one big go
+        We know a user won't have rated a business twice, nor a business have
+        ratings from same user, so lets use dictionaries.
         """
-        items = []
+        items = {}
         for xj in xjIn:
-            x = json.loads(xj)
-            items.append(x)
+            items[ xj[0] ] = xj[1]
 
         yield (key,items)
 

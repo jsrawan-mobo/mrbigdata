@@ -35,6 +35,9 @@ class InitializeCanopy(MRJob):
         """
         Key - is the business: or user:
         Value - the set of ratings for the user/business
+
+        Note we have a dimensional reduction from 12K to 3K, so each cluster
+        has an average of 4 related business, and they are all over the globe.
         """
 
         #Stupid thing does not split on tabs.
@@ -47,17 +50,17 @@ class InitializeCanopy(MRJob):
 
         covered = False
         for center in self.canopy:
-            t1 = CorrelationMr.jaccard_full(rating_vector, center["rating_vector"])
+            t1 = CorrelationMr.jaccard_full(rating_vector, center[1]["rating_vector"])
 
             if t1 > T1_Business:
                 #print "isCovered"
                 covered = True
-                center["count"] += 1
+                center[1]["count"] += 1
 
 
         if not covered:
             #print id, rating_vector
-            self.canopy.append( { 'business':id, 'rating_vector':rating_vector, "count" : 1 } )
+            self.canopy.append(  [ 'business:%s' % id,  {'rating_vector':rating_vector, "count" : 1 } ] )
         if False: yield 1,2
 
 
@@ -71,17 +74,16 @@ class InitializeCanopy(MRJob):
         """
 
         for center in self.canopy:
-            yield 1, json.dumps(center)
+            yield 1, center
         
     def reducer(self, key, value):
         """
         Write unique set of canopy centers
         """
 
-        for center in value:
-            center_data = json.loads(center)
+        for center_data in value:
             #print "reducer:%s,%s" % (key, value)
-            yield "business:%s" % center_data["business"], {'count': center_data['count'] , 'rating_vectors' : center_data["rating_vector"]}
+            yield center_data[0], center_data[1]
 
 
 if __name__ == '__main__':
