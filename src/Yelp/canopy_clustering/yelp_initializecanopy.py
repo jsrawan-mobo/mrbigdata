@@ -28,8 +28,12 @@ class InitializeCanopy(MRJob):
         self.canopy = []                  #current centroid list
         self.count = 0
 
+
     def configure_options(self):
         super(InitializeCanopy, self).configure_options()
+        self.add_passthrough_option(
+                   '--pathName', dest='pathName', default="data", type='str',
+                   help='pathName: relative pathname to current folder canopy_center_1.txt is stored')
         
     def mapper(self, key, value):
         """
@@ -67,7 +71,8 @@ class InitializeCanopy(MRJob):
     def mapper_final(self):
         """
         Here we yield the canopies and the centers
-        Should we reduce the centers.
+        Should we reduce the centers?  For now lets leave this until
+        we run on hdfs.
 
         Should we merge the users?? into a single vector for the canopy?
         Because the center
@@ -81,9 +86,17 @@ class InitializeCanopy(MRJob):
         Write unique set of canopy centers
         """
 
+        canopy_cent = {}
         for center_data in value:
             #print "reducer:%s,%s" % (key, value)
-            yield center_data[0], center_data[1]
+            canopy_cent[ center_data[0] ] = center_data[1]
+            print center_data[0]
+
+        fullPath = os.path.join(self.options.pathName, 'canopy_centers_1.txt')
+        fileOut = open(fullPath,'w')
+        fileOut.write(json.dumps(canopy_cent))
+        fileOut.close()
+
 
 
 if __name__ == '__main__':

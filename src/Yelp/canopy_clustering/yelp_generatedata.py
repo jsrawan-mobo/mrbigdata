@@ -24,6 +24,7 @@ class YelpGenerateData(MRJob):
     def configure_options(self):
         super(YelpGenerateData, self).configure_options()
 
+
     def mapper(self, key, value):
 
 

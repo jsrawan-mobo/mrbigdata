@@ -90,8 +90,8 @@ Outputs: Kx,Ky
 
 ***********************Running*******************************
 
-python yelp_generatedata.py < yelp_academic_dataset.json > data/rating_vectors.txt
-python yelp_initializecanopy.py < data/rating_vectors.txt > data/canopy.txt
+python yelp_generatedata.py < yelp_academic_dataset.json > data/rating_vectors_1.txt
+python yelp_initializecanopy.py < data/rating_vectors_1.txt
 
 
 Figuring out various things
