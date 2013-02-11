@@ -8,6 +8,8 @@ Has 474,434 json records, one per line
  cat yelp_academic_dataset.json | grep -ie '"type": "business"' > yelp_business_all.json
  cat yelp_academic_dataset.json | grep -ie '"type": "user"' > yelp_user_all.json
  cat yelp_academic_dataset.json | grep -ie '"type": "review"' > yelp_review_all.json
+
+
 wc -l to get lines.
 
 Business - 13490
@@ -98,7 +100,17 @@ python yelp_kmeanIterate.py < data/rating_vectors_1.txt > data/user_cluster_1.tx
 Figuring out various things
 
 i) Distribution of lat/long (run it twice, and put average in)
-cat ../data/yelp_business_all.json | cut -d ":" -f18 | cut -d "," -f1 | awk '{if(min==""){min=max=$0}; if($0>max) {max=$0}; if($0< min) {min=$0}; total+=$0; count+=1; stdev=($count-38.288)^2} END {print "Average",total/count, "Min",min, "Max=",max, "stdev=",sqrt(stdev/count)'}
+cat ../data/yelp_business_all.json | cut -d ":" -f18 | cut -d "," -f1 | awk '{if(min==""){min=max=$0}; if($0>max) {max=$0}; if($0< min) {min=$0}; total+=$0; count+=1; stdev=($count-38.288)^2} END {print "Sum",total,"Average",total/count, "Min",min, "Max=",max, "stdev=",sqrt(stdev/count)'}
+
+
+ii) Number of rating_vectors
+
+grep -ie "^\"user" data/rating_vectors_1.txt  | wc -l
+grep -ie "^\"business" data/rating_vectors_1.txt  | wc -l
+
+ii) Distribution of counts per centroid. Sum should be equal to the number of users.
+jsonlint -f data/kmean_centers_1.txt | grep -ie "count" | cut -d ":" -f2 | sort -n
+jsonlint -f data/kmean_centers_1.txt | grep -ie "count" | cut -d ":" -f2 | sort -n | awk '{if(min==""){min=max=$0}; if($0>max) {max=$0}; if($0< min) {min=$0}; total+=$0; count+=1; stdev=($count-1.75)^2} END {print "Sum",total,"Average",total/count, "Min",min, "Max=",max, "stdev=",sqrt(stdev/count)'}
 
 
 

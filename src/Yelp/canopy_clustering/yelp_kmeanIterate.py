@@ -106,13 +106,8 @@ class MRkMeansIter(MRJob):
         canopy_keys_flatten = sorted(set(chain.from_iterable(canopy_keys_all)))
 
 
-#        for canopy_key, canopy_data in self.canopy():
-#            if id in canopy_data["user_vector"].keys():
-#                canopy_keys_intersect.append(canopy_key)
-
         if not len(canopy_keys_flatten):
-            print "Cannot find cluster for user, skipping"
-            return
+            raise Exception("Cannot find cluster for user, skipping")
 
         km_key = (0,0)
         km_sim = 0
