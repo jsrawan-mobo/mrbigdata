@@ -26,7 +26,7 @@ class InitializeCanopy(MRJob):
     def __init__(self, *args, **kwargs):
         super(InitializeCanopy, self).__init__(*args, **kwargs)
         self.canopy = []                  #current centroid list
-        self.count = 0
+        self.business_to_canopies = dict()
 
 
     def configure_options(self):
@@ -53,18 +53,29 @@ class InitializeCanopy(MRJob):
         rating_vector = json.loads(value)
 
         covered = False
-        for center in self.canopy:
-            t1 = CorrelationMr.jaccard_full(rating_vector, center[1]["rating_vector"])
+        for i,center in enumerate(self.canopy):
+            t1 = CorrelationMr.jaccard_full(rating_vector, center["centroid"])
 
             if t1 > T1_Business:
                 #print "isCovered"
+                #@TODO, this is cheating, what happens, we don't have cluster yet, the user won't be assigned!
                 covered = True
-                center[1]["count"] += 1
+                center["count"] += 1
 
+                if id not in self.business_to_canopies:
+                    self.business_to_canopies[id] = list()
+                self.business_to_canopies[id].append(i)
+#                for user, rating in rating_vector.iteritems():
+#                    if user in center[1]["user_vector"]:
+#                        center[1]["user_vector"][user] += rating
+#                    else:
+#                        center[1]["user_vector"][user] = rating
 
         if not covered:
             #print id, rating_vector
-            self.canopy.append(  [ id,  {'rating_vector':rating_vector, "count" : 1 } ] )
+            self.canopy.append(   {'centroid':rating_vector, "count" : 1} )
+            i = len(self.canopy)-1
+            self.business_to_canopies[id] = [i]
         if False: yield 1,2
 
 
@@ -78,8 +89,8 @@ class InitializeCanopy(MRJob):
         Because the center
         """
 
-        for center in self.canopy:
-            yield 1, center
+        for id, canopy_vector in self.business_to_canopies.iteritems():
+            yield 1, [id,canopy_vector]
         
     def reducer(self, key, value):
         """
@@ -88,9 +99,7 @@ class InitializeCanopy(MRJob):
 
         canopy_cent = {}
         for center_data in value:
-            #print "reducer:%s,%s" % (key, value)
             canopy_cent[ center_data[0] ] = center_data[1]
-            print center_data[0]
 
         fullPath = os.path.join(self.options.pathName, 'canopy_centers_1.txt')
         fileOut = open(fullPath,'w')
