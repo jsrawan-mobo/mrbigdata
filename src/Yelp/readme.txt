@@ -92,6 +92,7 @@ Outputs: Kx,Ky
 
 python yelp_generatedata.py < yelp_academic_dataset.json > data/rating_vectors_1.txt
 python yelp_initializecanopy.py < data/rating_vectors_1.txt
+python yelp_kmeanIterate.py < data/rating_vectors_1.txt > data/user_cluster_1.txt
 
 
 Figuring out various things

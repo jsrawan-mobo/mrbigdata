@@ -3,6 +3,7 @@ Created on Apr 18, 2011
 
 @author: mike-bowles
 '''
+from itertools import chain
 import os
 from mrjob.job import MRJob
 
@@ -58,15 +59,15 @@ class MRkMeansIter(MRJob):
         fileIn = open(fullPath)
         centroidsJson = fileIn.read()
         fileIn.close()
-        self.canopy = json.loads(centroidsJson)
+        self.business_to_canopy = json.loads(centroidsJson)
 
 
-        #Now cheat and just assign canopy = centroids for now!!
+        # Now cheat and just assign canopy = centroids for now!!
         # Each centroid, is just a single user that represent the center.
         # As it mutates, we'll adjust the center's ratings.
         # The average, will also represent, the recommendation for adjacent business
 
-        for business_id, canopy_vector in self.canopy.iteritems():
+        for business_id, canopy_vector in self.business_to_canopy.iteritems():
             #print k
             for k_i in canopy_vector:
                 self.new_centroid[k_i] = {}
@@ -74,8 +75,8 @@ class MRkMeansIter(MRJob):
 
 
         #self.numMappers = 1             #number of mappers
-        #self.count = 0                  #passes through mapper
-        #self.count2 = []                #contributors to new_centroid calc in each mapper
+        self.count = 0                  #passes through mapper
+
                                                  
     def configure_options(self):
         super(MRkMeansIter, self).configure_options()
@@ -96,56 +97,60 @@ class MRkMeansIter(MRJob):
         if type != "user":
             return
 
+        self.count+=1
         user_rating_vector = json.loads(value)
 
         #The user rating vector, has business as key and rating as key
         #Here we do the real assignment.
-        canopy_keys_intersect = list()
+        canopy_keys_all = [ self.business_to_canopy[key] for key, value in user_rating_vector.iteritems() ]
+        canopy_keys_flatten = sorted(set(chain.from_iterable(canopy_keys_all)))
 
-        canopy_keys_intersect = filter(user_rating_vector.haskey,self.canopy().keys())
 
 #        for canopy_key, canopy_data in self.canopy():
 #            if id in canopy_data["user_vector"].keys():
 #                canopy_keys_intersect.append(canopy_key)
 
-        if not len(canopy_keys_intersect):
+        if not len(canopy_keys_flatten):
             print "Cannot find cluster for user, skipping"
             return
 
         km_key = (0,0)
-        for canopy_key in canopy_keys_intersect:
+        km_sim = 0
+        for canopy_key in canopy_keys_flatten:
             #print  len(self.new_centroid.keys())
-            print canopy_key
             for user_key, rating_vector in self.new_centroid[canopy_key].iteritems():
-                t2 = CorrelationMr.jaccard_dot(user_rating_vector, rating_vector["centroid_vector"])
-                print t2
-                if t2 > T2_Business and self.new_centroid[km_key[0]][km_key[1]]:
+                t2sim = CorrelationMr.jaccard_dot(user_rating_vector, rating_vector["centroid"])
+                if t2sim > T2_Business and t2sim > km_sim:
                     km_key = (canopy_key, user_key)
-                    print "covered"
+                    km_sim = t2sim
+
 
         if km_key == (0,0):
-            print "new"
+            #print "new"
             #So its in many centroid keys, and is not a center, lets make it one in the first centroid
-            canopy_key = canopy_keys_intersect[0]
+            canopy_key = canopy_keys_flatten[0]
             user_key = id
             centroid_obj = { "centroid" : user_rating_vector, "users_vector" : [user_rating_vector], "count" : 1}
-            self.new_centroid[key] = dict()
-            self.new_centroid[key][user_key] = centroid_obj
+            self.new_centroid[canopy_key] = dict()
+            self.new_centroid[canopy_key][user_key] = centroid_obj
         else:
-            key = km__key[0]
-            user_key = km__key[1]
-            self.new_centroid[key][user_key]["users_vector"].append(user_rating_vector)
-            self.new_centroid[key][user_key]["count"] += 1
+            #print "covered"
+            canopy_key = km_key[0]
+            user_key = km_key[1]
+            self.new_centroid[canopy_key][user_key]["users_vector"].append(user_rating_vector)
+            self.new_centroid[canopy_key][user_key]["count"] += 1
+
+        #print self.count
         if False: yield 1,2
+
 
     def mapper_final(self):
         """
         Just output the centroids, nothing else.
         """
-        print "done"
         for cluster_key, km_clust in self.new_centroid.iteritems():
             for user_key, user_obj in km_clust.iteritems():
-                yield 1, {user_key:user_obj}
+                yield 1, [user_key, user_obj, cluster_key]
 
     def reducer(self, key, value):
 
@@ -156,10 +161,10 @@ class MRkMeansIter(MRJob):
         add up the number of points in each centroid calc from each mapper
         """
         kmean_cent = {}
-        for center_data in value:
+        for i, km_cluster in enumerate(value):
             #print "reducer:%s,%s" % (key, value)
-            kmean_cent[ center_data[0] ] = center_data[1]
-            #print center_data[0]
+            kmean_cent[ km_cluster[0] ] = { 'centroid':km_cluster[1]["centroid"], 'count' : km_cluster[1]['count']}
+            yield "%s:%s"%(i,km_cluster[2]),km_cluster[1]["users_vector"]
 
         #write new centroids to file
         fullPath = os.path.join(self.options.pathName, 'kmean_centers_1.txt')
@@ -168,7 +173,8 @@ class MRkMeansIter(MRJob):
         fileOut.write(json.dumps(kmean_cent))
         fileOut.close()
 
-        #Again no yield.
+        #Now lets yield the users and their related friends.
+
 
     #def steps(self):
         #return ([self.mr(mapper=self.mapper,reducer=None,mapper_final=None)])
