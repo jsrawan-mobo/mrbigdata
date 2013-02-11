@@ -1,43 +1,17 @@
 '''
-Created on Apr 18, 2011
 
-@author: mike-bowles
 '''
 from itertools import chain
 import os
 from mrjob.job import MRJob
-
 from math import sqrt
 from numpy import mat, zeros, shape, random, array, zeros_like
-from random import sample
 import json
 from constants import T2_Business
 from corr import CorrelationMr
 
 PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
 
-def dist(x,y):
-    #euclidean distance between two lists    
-    sum = 0.0
-    for i in range(len(x)):
-        temp = x[i] - y[i]
-        sum += temp * temp
-    return sqrt(sum)
-
-def plus(x,y):
-    #"vector" sum of two lists
-    length = len(x)
-    sum = [0.0]*length
-    for i in range(length):
-        sum[i] = x[i] + y[i]
-    return sum
-        
-def divide(x,alpha):
-    length = len(x)
-    div = [0.0]*length
-    for i in range(length):
-        div[i] = x[i]/alpha
-    return div
 
 class MRkMeansIter(MRJob):
     DEFAULT_PROTOCOL = 'json'
@@ -68,11 +42,10 @@ class MRkMeansIter(MRJob):
         # The average, will also represent, the recommendation for adjacent business
 
         for business_id, canopy_vector in self.business_to_canopy.iteritems():
-            #print k
             for k_i in canopy_vector:
                 self.new_centroid[k_i] = {}
-        #print  len(self.new_centroid.keys())
-
+        #print self.new_centroid
+        #print len(self.new_centroid)
 
         #self.numMappers = 1             #number of mappers
         self.count = 0                  #passes through mapper
@@ -111,22 +84,27 @@ class MRkMeansIter(MRJob):
 
         km_key = (0,0)
         km_sim = 0
+        #print canopy_keys_flatten
+        #print "%s,%s" % ( len(canopy_keys_flatten), len(user_rating_vector))
         for canopy_key in canopy_keys_flatten:
-            #print  len(self.new_centroid.keys())
+            #print  len(self.new_centroid[canopy_key])
             for user_key, rating_vector in self.new_centroid[canopy_key].iteritems():
                 t2sim = CorrelationMr.jaccard_dot(user_rating_vector, rating_vector["centroid"])
+                #t2sim = 1 #this will dump things really fast..
                 if t2sim > T2_Business and t2sim > km_sim:
                     km_key = (canopy_key, user_key)
                     km_sim = t2sim
 
 
+#        if self.count % 1000 == 0:
+#            print self.count
+
         if km_key == (0,0):
             #print "new"
-            #So its in many centroid keys, and is not a center, lets make it one in the first centroid
+            #So its in many centroid keys, and is not a center, lets make it one in the first canopy
             canopy_key = canopy_keys_flatten[0]
             user_key = id
             centroid_obj = { "centroid" : user_rating_vector, "users_vector" : [user_rating_vector], "count" : 1}
-            self.new_centroid[canopy_key] = dict()
             self.new_centroid[canopy_key][user_key] = centroid_obj
         else:
             #print "covered"
@@ -135,7 +113,6 @@ class MRkMeansIter(MRJob):
             self.new_centroid[canopy_key][user_key]["users_vector"].append(user_rating_vector)
             self.new_centroid[canopy_key][user_key]["count"] += 1
 
-        #print self.count
         if False: yield 1,2
 
 
