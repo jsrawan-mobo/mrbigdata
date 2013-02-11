@@ -104,13 +104,14 @@ class MRkMeansIter(MRJob):
             #So its in many centroid keys, and is not a center, lets make it one in the first canopy
             canopy_key = canopy_keys_flatten[0]
             user_key = id
-            centroid_obj = { "centroid" : user_rating_vector, "users_vector" : [user_rating_vector], "count" : 1}
+            centroid_obj = { "centroid" : user_rating_vector, "users_vector" : {}, "count" : 1}
+            centroid_obj["users_vector"][id] = user_rating_vector
             self.new_centroid[canopy_key][user_key] = centroid_obj
         else:
             #print "covered"
             canopy_key = km_key[0]
             user_key = km_key[1]
-            self.new_centroid[canopy_key][user_key]["users_vector"].append(user_rating_vector)
+            self.new_centroid[canopy_key][user_key]["users_vector"][id] = user_rating_vector
             self.new_centroid[canopy_key][user_key]["count"] += 1
 
         if False: yield 1,2
@@ -139,7 +140,7 @@ class MRkMeansIter(MRJob):
             yield "%s:%s"%(i,km_cluster[2]),km_cluster[1]["users_vector"]
 
         #write new centroids to file
-        fullPath = os.path.join(self.options.pathName, 'kmean_centers_1.txt')
+        fullPath = os.path.join(self.options.pathName, 'kmean_centers_2.txt')
         fileOut = open(fullPath,'w')
         #TODO, we should pretty format this, even though its a big dictionary.
         fileOut.write(json.dumps(kmean_cent))

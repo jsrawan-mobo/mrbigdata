@@ -117,7 +117,7 @@ sed s/]/\\n/g data/canopy_centers_1.txt | sed 's/[^,]//g' | awk '{print length-1
 ii) Distribution of counts per centroid. Sum should be equal to the number of users.
 jsonlint -f data/kmean_centers_1.txt | grep -ie "count" | wc -l
 jsonlint -f data/kmean_centers_1.txt | grep -ie "count" | cut -d ":" -f2 | sort -n
-jsonlint -f data/kmean_centers_1.txt | grep -ie "count" | cut -d ":" -f2 | sort -n | awk '{if(min==""){min=max=$0}; if($0>max) {max=$0}; if($0< min) {min=$0}; total+=$0; count+=1; stdev=($0-1.75)^2} END {print "Sum",total,"Average",total/count, "Min",min, "Max=",max, "stdev=",sqrt(stdev/count)'}
+jsonlint -f data/kmean_centers_1.txt | grep -ie "count" | cut -d ":" -f2 | sort -n | awk '{if(min==""){min=max=$0}; if($0>max) {max=$0}; if($0< min) {min=$0}; total+=$0; count+=1; stdev+=($0-2.03042)^2} END {print "Sum",total,"Average",total/count, "Min",min, "Max=",max, "stdev=",sqrt(stdev/count)'}
 
 
 
