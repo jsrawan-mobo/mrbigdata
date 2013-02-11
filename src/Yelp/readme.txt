@@ -92,6 +92,7 @@ Outputs: Kx,Ky
 
 ***********************Running*******************************
 
+1) Test each loop individually.
 python yelp_generatedata.py < yelp_academic_dataset.json > data/rating_vectors_1.txt
 python yelp_initializecanopy.py < data/rating_vectors_1.txt
 python yelp_kmeanIterate.py < data/rating_vectors_1.txt > data/user_cluster_1.txt
@@ -104,13 +105,19 @@ cat ../data/yelp_business_all.json | cut -d ":" -f18 | cut -d "," -f1 | awk '{if
 
 
 ii) Number of rating_vectors
-
 grep -ie "^\"user" data/rating_vectors_1.txt  | wc -l
 grep -ie "^\"business" data/rating_vectors_1.txt  | wc -l
 
+iii) Number of Business to canopies and overlaps.  If to many overlaps, increase T2
+
+sed s/]/\\n/g data/canopy_centers_1.txt | wc -l
+sed s/]/\\n/g data/canopy_centers_1.txt | sed 's/[^,]//g' | awk '{print length-1}'
+
+
 ii) Distribution of counts per centroid. Sum should be equal to the number of users.
+jsonlint -f data/kmean_centers_1.txt | grep -ie "count" | wc -l
 jsonlint -f data/kmean_centers_1.txt | grep -ie "count" | cut -d ":" -f2 | sort -n
-jsonlint -f data/kmean_centers_1.txt | grep -ie "count" | cut -d ":" -f2 | sort -n | awk '{if(min==""){min=max=$0}; if($0>max) {max=$0}; if($0< min) {min=$0}; total+=$0; count+=1; stdev=($count-1.75)^2} END {print "Sum",total,"Average",total/count, "Min",min, "Max=",max, "stdev=",sqrt(stdev/count)'}
+jsonlint -f data/kmean_centers_1.txt | grep -ie "count" | cut -d ":" -f2 | sort -n | awk '{if(min==""){min=max=$0}; if($0>max) {max=$0}; if($0< min) {min=$0}; total+=$0; count+=1; stdev=($0-1.75)^2} END {print "Sum",total,"Average",total/count, "Min",min, "Max=",max, "stdev=",sqrt(stdev/count)'}
 
 
 
