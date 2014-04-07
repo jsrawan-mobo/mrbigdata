@@ -3,11 +3,8 @@
 # Use gradient boosted tree's
 #
 # Rev1 - Join Data and use GBM
-# 
-# Submission Info:
-# Fri, 01 Jun 2012 05:13:23
-# GBM + no negatives
-# RMLSE = 0.76373
+# RMLSE = 2, Using gbm.fit, 20 trees
+# WMAE = 18413.44987
 #
 #
 # When using more inputs,
@@ -136,9 +133,9 @@ XtrainClean = XtrainClean[, c(3:16)]
 test <- read.table(file="input/test.csv",header=TRUE, sep=",", na.strings=c("NA","NaN", " "))
 #indt <- sample(length(test[,1]),25000,FALSE)
 test_df <- tbl_df(test[,1:3])
-test <- inner_join(test_df, feature_df, by=c('Cat_Store','Date'))
-test <- test[, c(3,2,4:13)] 
-XtestClean = cleanInputDataForGBM(test)
+test_df <- inner_join(test_df, feature_df, by=c('Cat_Store','Date'))
+test_df <- test_df[, c(3,2,4:13)] 
+XtestClean = cleanInputDataForGBM(test_df)
 XtestClean = XtestClean[, c(2:15)]   
 
 
@@ -165,37 +162,37 @@ start=date()
 start
 
 Y <- as.numeric(training[,1])
-Y <- log(Y)  ## TBD how does this get reconciled?
+#Y <- log(Y)  ## TBD how does this get reconciled?
 Y[is.na(Y)] <- 0.0	
 gdata <- cbind(Y,X)
 
 
-# mo1gbm <- gbm.fit(Y~. ,
-# 			  data=gdata,
-#               distribution = "gaussian",
-#               n.trees = ntrees,
-#               shrinkage = shrink,
-#               #cv.folds = folds, 
-# 			  verbose = TRUE)
-#mogbm = mo1gbm
+mo1gbm <- gbm(Y~. ,
+			        data=gdata,
+              distribution = "gaussian",
+              n.trees = ntrees,
+              shrinkage = shrink,
+              cv.folds = folds, 
+			        verbose = TRUE)
+mogbm = mo1gbm
 
 #fit the model
-mo2gbm <- gbm.fit(y=Y, x=X,
-                  verbose = TRUE,
-                  #data=gdata,
-                  distribution = "laplace",
-                  n.trees = ntrees,
-                  shrinkage = shrink,
-                  #cv.folds = folds
-)
-mogbm = mo2gbm
+# mo2gbm <- gbm.fit(y=Y, x=X,
+#                   verbose = TRUE,
+#                   #data=gdata,
+#                   distribution = "laplace",
+#                   n.trees = ntrees,
+#                   shrinkage = shrink,
+#                   #cv.folds = folds
+# )
+# mogbm = mo2gbm
 
 gbm.perf(mo2gbm,method="cv")
 sqrt(min(mo2gbm$cv.error))
 which.min(mo2gbm$cv.error)
- 
-Yhattest[,2] <- exp(predict.gbm(mogbm, newdata=XtestClean, n.trees = ntrees)) 
-Yhattrain[,2] <- exp(predict.gbm(mogbm, newdata=XtrainClean, n.trees = ntrees)) 
+
+Yhattest[,2] <- predict.gbm(mogbm, newdata=XtestClean, n.trees = ntrees)
+Yhattrain[,2] <- predict.gbm(mogbm, newdata=XtrainClean, n.trees = ntrees)
  	
 end = date()
 end
@@ -220,8 +217,13 @@ rmsle
 
 write.csv(Yhattrain, "walmart_1_jag_gbm_train.csv", row.names=FALSE)
 
+submit_key = do.call(paste,c(test[,1:3], sep="_"))
 
-write.csv(Yhattest, "walmart_1_jag_gbm.csv", row.names=FALSE)
+Yhattest_final = cbind(submit_key, Yhattest[,2])
+
+colnames(Yhattest_final)[1] = "Id"
+colnames(Yhattest_final)[2] = "Weekly_Sales"
+write.csv(Yhattest_final, "walmart_1_jag_gbm.csv", row.names=FALSE)
 
 
 #########################################################
