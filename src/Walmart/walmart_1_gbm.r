@@ -1,0 +1,250 @@
+#
+#
+# Use gradient boosted tree's
+#
+# Rev1 - Join Data and use GBM
+# 
+# Submission Info:
+# Fri, 01 Jun 2012 05:13:23
+# GBM + no negatives
+# RMLSE = 0.76373
+#
+#
+# When using more inputs,
+#
+rm(list=ls())
+require(gbm)
+require(dplyr)
+
+
+
+# Give it a the estimator and real value.  Will return the RMLSE calculation. This is on training set 
+# Obviously. 
+# e
+computeRMSLE <- function(Ysimulated, Yreal) {
+	
+	#zero out negative elements  
+	Ysimulated <- ifelse(Ysimulated<0,0,Ysimulated)
+	Yreal <- ifelse(Yreal<0,0,Yreal)
+	
+	#initialize values
+	rmsle <- 0.0
+	n <- 0
+	
+	#perform calculations
+	Ysimulated <- log(Ysimulated + 1)
+	Yreal <- log(Yreal + 1)
+		
+	#for vectors, n is the length of the vector
+	n <- length(Yreal)
+	rmsle <- sqrt(sum((Ysimulated - Yreal)^2)/n)
+	
+	return (rmsle)
+}
+
+
+### Clean and make right category
+#
+# If sparse, don't use the mean.   Set it to the majority sparcicity value.
+cleanInputDataForGBM <- function(X, transform_date=TRUE) {
+	names(X);
+	i_pos = length(X)
+	for(i in 1:length(X)) {
+		
+		name = names(X)[i]
+		print (name)
+		col = X[,i]  
+		
+		index = which(is.na(col))
+		
+		if ( substr(name,1,3) == 'Cat'  ) {
+			col[index] = "Unknown"
+			X[,i] <- as.factor(col)
+		}
+		
+		if ( substr(name,1,4) == 'Quan' ) {
+			column_mean = mean(col, na.rm = TRUE)
+			col[index] = column_mean
+			X[,i] <- as.numeric(col)
+		}
+		
+        #Date is 2014-01-01. Split into 3 columns
+		if (transform_date == TRUE) {
+    		if ( substr(name,1,4) == 'Date' ) {  	
+    			#column_mean = mean(col, na.rm = TRUE)
+    			#col[index] = column_mean
+    			splitvec <- strsplit(as.character(col),'-',TRUE)
+    			X[,i_pos+1] <- as.numeric(unlist(lapply(splitvec,"[[",1)))
+    			colnames(X)[i_pos+1] = "Quant_Year"
+    			X[,i_pos+2] <- as.numeric(unlist(lapply(splitvec,"[[",2)))
+    			colnames(X)[i_pos+2] = "Quant_Month"
+    			X[,i_pos+3] <- as.numeric(unlist(lapply(splitvec,"[[",3)))
+    			colnames(X)[i_pos+3] = "Quant_Day"
+    		}
+		}
+		
+		result = is.factor(X[,i])
+		print(result);
+	}
+	return (X)
+}
+
+cleanInputAsNumeric <- function(X) {
+	names(X);
+	for(i in 1:length(X)) {
+		
+		name = names(X)[i]
+		print (name)
+		col = X[,i]  
+    	X[,i] <- as.numeric(col)	 
+		result = is.factor(X[,i])
+		print(result);
+	}
+	return (X)
+}
+
+
+# http://www.kaggle.com/c/walmart-recruiting-store-sales-forecasting
+# train.csv - Store,Dept,Date,Weekly_Sales,IsHoliday
+# - 45 stores * 143 days * 62 depts/per store (max 81 dept types)
+# features.csv - Store,Date,Temperature,Fuel_Price,MarkDown1,MarkDown2,MarkDown3,MarkDown4,MarkDown5,CPI,Unemployment,IsHoliday
+# - 45 stores * 182 days (3 years) = 8190
+# stores.csv - Store,Type,Size
+# - The type of store and its square footage.  Good change the footage is related to the sales anyways..
+# 
+# Predict for sales by dept.  Inner join store/days.  Use left join once more sophiticated
+#
+
+#idxCat <- c(13,558)
+idxCat <- c(4,16)  #31st column is messed, 
+
+train <- read.table(file="input/train.csv",header=TRUE, sep=",", na.strings=c("NA","NaN", " "))
+feature <- read.table(file="input/features.csv",header=TRUE, sep=",", na.strings=c("NA","NaN", " "))
+
+#train <- cleanInputDataForGBM(train, transform_date=FALSE)
+#feature <- cleanInputDataForGBM(feature)
+
+train_df <- tbl_df(train[1:50000,1:4])
+feature_df <- tbl_df(feature)
+training <- inner_join(train_df, feature_df, by=c('Cat_Store','Date'))
+training <- training[, c(4,3,2,5:14)] 
+XtrainClean = cleanInputDataForGBM(training)
+XtrainClean = XtrainClean[, c(3:16)]  
+
+
+## Create levelsets for the NA's that are factors.   If numeric then abort if there is an NA
+
+## Now run Test Data set, clean and continue.
+#test <- read.table(file="TestDataset.csv",header=TRUE, sep=",")
+#Xtest <- test[,  2:(idxCat[2] - idxCat[1] + 2)  ]
+#XtestClean = cleanInputDataForGBM(Xtest)
+
+
+## GBM Parameters
+ntrees <- 2000
+depth <- 3 #5
+minObs <- 10
+shrink <- 0.001
+folds <- 10
+
+
+Ynames <-   c('id', names(training)[1])
+
+## Setup variables.
+#ntestrows = nrow(XtestClean)
+ntrainrows = nrow(XtrainClean)
+#Yhattest =  matrix(nrow = ntestrows , ncol = 13, dimnames = list (1:ntestrows,Ynames ) )
+Yhattrain =  matrix(nrow = ntrainrows , ncol = 2, dimnames = list (1:ntrainrows,Ynames ) )
+
+X = XtrainClean
+nColsOutput = 1
+
+## Density
+#Y <-  training[,1:12] 
+#Ysum <- rowSums ( Y, na.rm=TRUE)
+#plot(1:12, Y[2,] )
+  
+
+
+start=date()
+start
+
+
+Y <- as.numeric(training[,1])
+#Y <- log(Y)  ## TBD how does this get reconciled?
+Y[is.na(Y)] <- 0.0	
+gdata <- cbind(Y,X)
+
+
+mo1gbm <- gbm(Y~. ,
+			  data=gdata,
+              distribution = "gaussian",
+              n.trees = ntrees,
+              shrinkage = shrink,
+              cv.folds = folds, 
+			  verbose = TRUE)
+
+
+gbm.perf(mo1gbm,method="cv")
+sqrt(min(mo1gbm$cv.error))
+which.min(mo1gbm$cv.error)
+ 
+#Yhattest[,i+1] <- exp(predict.gbm(mo1gbm, newdata=XtestClean, n.trees = ntrees)) 
+Yhattrain[,2] <- exp(predict.gbm(mo1gbm, newdata=XtrainClean, n.trees = ntrees)) 
+#Yhattrain[,i+1] <- predict.gbm(mo1gbm, newdata=XtrainClean, n.trees = ntrees)
+#gc()
+ 	
+
+end = date()
+end
+
+Yhattest[,1] <- seq(1,ntestrows,1)
+Yhattrain[,1] <- seq(1,ntrainrows,1)
+
+
+## Calculate total training error
+YhattrainRMLSE <- Yhattrain[,2:13]
+YtrainRMLSE <- as.matrix(training[,1:12])
+YtrainRMLSE[is.na(YtrainRMLSE)] <- 0.0
+rmsle <- computeRMSLE(YhattrainRMLSE, YtrainRMLSE)
+rmsle
+
+## Is there some set of data, where the RMSLE is different
+
+#1. For campaigns from various overallsales (historgram)
+
+
+#2. 
+
+write.csv(Yhattrain, "campaign_4_jag_gbm_train.csv", row.names=FALSE)
+
+
+write.csv(Yhattest, "campaign_4_jag_gbm.csv", row.names=FALSE)
+
+
+#########################################################
+# Extra's
+########################################################
+# 1. Which columns look like other columns
+# Take the correlatoin, and find where its greater that 0.9999
+# Of course remove the 1 correlaion
+# You must set EACH column to a numeric one
+# Finally the 'diff' returns where its not a diagonol
+# TODO return the exact columnnames
+
+trainingMatrix = as.matrix( training )
+trainingMatrix = cleanInputAsNumeric( training)
+trainingMatrix[is.na(trainingMatrix)] <- 0.0
+
+corr <- cor(trainingMatrix)
+idx <- which(corr > 0.9999, arr.ind = TRUE)
+idxCopy <- idx[ apply(idx, 1, diff) > 0, ]
+
+
+# 2.
+#
+#
+#
+
+
+
