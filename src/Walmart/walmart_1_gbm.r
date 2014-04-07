@@ -118,8 +118,9 @@ idxCat <- c(4,16)  #31st column is messed,
 train <- read.table(file="input/train.csv",header=TRUE, sep=",", na.strings=c("NA","NaN", " "))
 feature <- read.table(file="input/features.csv",header=TRUE, sep=",", na.strings=c("NA","NaN", " "))
 
-ind <- sample(length(train[,1]),25000,FALSE)
-train_df <- tbl_df(train[ind,1:4])
+#ind <- sample(length(train[,1]),25000,FALSE)
+#train_df <- tbl_df(train[ind,1:4])
+train_df <- tbl_df(train[,1:4])
 feature_df <- tbl_df(feature)
 training <- inner_join(train_df, feature_df, by=c('Cat_Store','Date'))
 training <- training[, c(4,3,2,5:14)] 
@@ -140,8 +141,8 @@ XtestClean = XtestClean[, c(2:15)]
 
 
 ## GBM Parameters
-ntrees <- 20 #6000
-depth <- 3 #5
+ntrees <- 6000
+depth <- 5
 minObs <- 10
 shrink <- 0.001
 folds <- 10
@@ -187,9 +188,9 @@ mogbm = mo1gbm
 # )
 # mogbm = mo2gbm
 
-gbm.perf(mo2gbm,method="cv")
-sqrt(min(mo2gbm$cv.error))
-which.min(mo2gbm$cv.error)
+gbm.perf(mogbm,method="cv")
+sqrt(min(mogbm$cv.error))
+which.min(mogbm$cv.error)
 
 Yhattest[,2] <- predict.gbm(mogbm, newdata=XtestClean, n.trees = ntrees)
 Yhattrain[,2] <- predict.gbm(mogbm, newdata=XtrainClean, n.trees = ntrees)
