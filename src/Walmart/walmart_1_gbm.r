@@ -121,10 +121,8 @@ idxCat <- c(4,16)  #31st column is messed,
 train <- read.table(file="input/train.csv",header=TRUE, sep=",", na.strings=c("NA","NaN", " "))
 feature <- read.table(file="input/features.csv",header=TRUE, sep=",", na.strings=c("NA","NaN", " "))
 
-#train <- cleanInputDataForGBM(train, transform_date=FALSE)
-#feature <- cleanInputDataForGBM(feature)
-
-train_df <- tbl_df(train[1:50000,1:4])
+ind <- sample(length(train[,1]),25000,FALSE)
+train_df <- tbl_df(train[ind,1:4])
 feature_df <- tbl_df(feature)
 training <- inner_join(train_df, feature_df, by=c('Cat_Store','Date'))
 training <- training[, c(4,3,2,5:14)] 
@@ -135,13 +133,17 @@ XtrainClean = XtrainClean[, c(3:16)]
 ## Create levelsets for the NA's that are factors.   If numeric then abort if there is an NA
 
 ## Now run Test Data set, clean and continue.
-#test <- read.table(file="TestDataset.csv",header=TRUE, sep=",")
-#Xtest <- test[,  2:(idxCat[2] - idxCat[1] + 2)  ]
-#XtestClean = cleanInputDataForGBM(Xtest)
+test <- read.table(file="input/test.csv",header=TRUE, sep=",", na.strings=c("NA","NaN", " "))
+#indt <- sample(length(test[,1]),25000,FALSE)
+test_df <- tbl_df(test[,1:3])
+test <- inner_join(test_df, feature_df, by=c('Cat_Store','Date'))
+test <- test[, c(3,2,4:13)] 
+XtestClean = cleanInputDataForGBM(test)
+XtestClean = XtestClean[, c(2:15)]   
 
 
 ## GBM Parameters
-ntrees <- 2000
+ntrees <- 20 #6000
 depth <- 3 #5
 minObs <- 10
 shrink <- 0.001
@@ -151,50 +153,50 @@ folds <- 10
 Ynames <-   c('id', names(training)[1])
 
 ## Setup variables.
-#ntestrows = nrow(XtestClean)
+ntestrows = nrow(XtestClean)
 ntrainrows = nrow(XtrainClean)
-#Yhattest =  matrix(nrow = ntestrows , ncol = 13, dimnames = list (1:ntestrows,Ynames ) )
+Yhattest =  matrix(nrow = ntestrows , ncol = 2, dimnames = list (1:ntestrows,Ynames ) )
 Yhattrain =  matrix(nrow = ntrainrows , ncol = 2, dimnames = list (1:ntrainrows,Ynames ) )
 
 X = XtrainClean
 nColsOutput = 1
 
-## Density
-#Y <-  training[,1:12] 
-#Ysum <- rowSums ( Y, na.rm=TRUE)
-#plot(1:12, Y[2,] )
-  
-
-
 start=date()
 start
 
-
 Y <- as.numeric(training[,1])
-#Y <- log(Y)  ## TBD how does this get reconciled?
+Y <- log(Y)  ## TBD how does this get reconciled?
 Y[is.na(Y)] <- 0.0	
 gdata <- cbind(Y,X)
 
 
-mo1gbm <- gbm(Y~. ,
-			  data=gdata,
-              distribution = "gaussian",
-              n.trees = ntrees,
-              shrinkage = shrink,
-              cv.folds = folds, 
-			  verbose = TRUE)
+# mo1gbm <- gbm.fit(Y~. ,
+# 			  data=gdata,
+#               distribution = "gaussian",
+#               n.trees = ntrees,
+#               shrinkage = shrink,
+#               #cv.folds = folds, 
+# 			  verbose = TRUE)
+#mogbm = mo1gbm
 
+#fit the model
+mo2gbm <- gbm.fit(y=Y, x=X,
+                  verbose = TRUE,
+                  #data=gdata,
+                  distribution = "laplace",
+                  n.trees = ntrees,
+                  shrinkage = shrink,
+                  #cv.folds = folds
+)
+mogbm = mo2gbm
 
-gbm.perf(mo1gbm,method="cv")
-sqrt(min(mo1gbm$cv.error))
-which.min(mo1gbm$cv.error)
+gbm.perf(mo2gbm,method="cv")
+sqrt(min(mo2gbm$cv.error))
+which.min(mo2gbm$cv.error)
  
-#Yhattest[,i+1] <- exp(predict.gbm(mo1gbm, newdata=XtestClean, n.trees = ntrees)) 
-Yhattrain[,2] <- exp(predict.gbm(mo1gbm, newdata=XtrainClean, n.trees = ntrees)) 
-#Yhattrain[,i+1] <- predict.gbm(mo1gbm, newdata=XtrainClean, n.trees = ntrees)
-#gc()
+Yhattest[,2] <- exp(predict.gbm(mogbm, newdata=XtestClean, n.trees = ntrees)) 
+Yhattrain[,2] <- exp(predict.gbm(mogbm, newdata=XtrainClean, n.trees = ntrees)) 
  	
-
 end = date()
 end
 
@@ -203,8 +205,8 @@ Yhattrain[,1] <- seq(1,ntrainrows,1)
 
 
 ## Calculate total training error
-YhattrainRMLSE <- Yhattrain[,2:13]
-YtrainRMLSE <- as.matrix(training[,1:12])
+YhattrainRMLSE <- Yhattrain[,2]
+YtrainRMLSE <- as.matrix(training[,1])
 YtrainRMLSE[is.na(YtrainRMLSE)] <- 0.0
 rmsle <- computeRMSLE(YhattrainRMLSE, YtrainRMLSE)
 rmsle
@@ -216,10 +218,10 @@ rmsle
 
 #2. 
 
-write.csv(Yhattrain, "campaign_4_jag_gbm_train.csv", row.names=FALSE)
+write.csv(Yhattrain, "walmart_1_jag_gbm_train.csv", row.names=FALSE)
 
 
-write.csv(Yhattest, "campaign_4_jag_gbm.csv", row.names=FALSE)
+write.csv(Yhattest, "walmart_1_jag_gbm.csv", row.names=FALSE)
 
 
 #########################################################
