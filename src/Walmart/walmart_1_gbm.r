@@ -114,7 +114,7 @@ cleanInputAsNumeric <- function(X) {
 
 predictGBM <- function(Y, XtrainClean, XtestClean, trainCols) {
     ## GBM Parameters
-    ntrees <-  3000
+    ntrees <-  30
     depth <- 20
     minObs <- 5
     shrink <- 0.002
@@ -129,48 +129,52 @@ predictGBM <- function(Y, XtrainClean, XtestClean, trainCols) {
     if(LOAD_DATA) {
         load(file=paste(RELOAD_PATH,"mogbm.gbm",sep="/"))
     } else {
-        mo1gbm <- gbm(Y~. ,
-                      data=gdata,
-                      distribution = "gaussian",
-                      n.trees = ntrees,
-                      shrinkage = shrink,
-                      cv.folds = folds, 
-                      verbose = TRUE)
-                      #keep.data = TRUE)
-        mogbm = mo1gbm
-        save(mogbm, file="mogbm.gbm")
+
+#         mo1gbm <- gbm(Y~. ,
+#                       data=gdata,
+#                       distribution = "gaussian",
+#                       n.trees = ntrees,
+#                       shrinkage = shrink,
+#                       cv.folds = folds, 
+#                       verbose = TRUE)
+#                       #keep.data = TRUE)
+#         mogbm = mo1gbm
+#         save(mogbm, file="mogbm.gbm")
+#         CV=TRUE
         
         
         
         #fit the model
-        # mo2gbm <- gbm.fit(y=Y, x=X,
-        #                   verbose = TRUE,
-        #                   #data=gdata,
-        #                   distribution = "laplace",
-        #                   n.trees = ntrees,
-        #                   shrinkage = shrink,
-        #                   #cv.folds = folds
-        # )
-        # mogbm = mo2gbm
+        mo2gbm <- gbm.fit(y=Y, x=X,
+                          verbose = TRUE,
+                          #data=gdata,
+                          distribution = "gaussian",
+                          n.trees = ntrees,
+                          shrinkage = shrink,
+        )
+        mogbm = mo2gbm
+        CV = FALSE
     }
     
-    best.iter <- gbm.perf(mogbm,method="cv")
-    print ( sqrt(min(mogbm$cv.error)) )
-    print ( which.min(mogbm$cv.error) )
-    summary(mogbm, n.trees=1)         # based on the first tree
-    summary(mogbm,n.trees=best.iter) # based on the estimated best number of trees
-    # compactly print the first and last trees for curiosity
-    print(pretty.gbm.tree(mogbm,1))
-    print(pretty.gbm.tree(mogbm,mo1gbm$n.trees))
-    #Plot the tree in countour
-    #plot.gbm(mogbm,2,n.trees=1) #Sex
-    #plot.gbm(mogbm,2:3,n.trees=1) # 
-    #plot.gbm(mogbm,3:4,n.trees=1) # 
-    
-    for (i in 1:length(trainCols) ) {
-        plot.gbm(mogbm, i, best.iter)
+    if (CV){
+        best.iter <- gbm.perf(mogbm,method="cv")
+        print ( sqrt(min(mogbm$cv.error)) )
+        print ( which.min(mogbm$cv.error) )
+        summary(mogbm, n.trees=1)         # based on the first tree
+        summary(mogbm,n.trees=best.iter) # based on the estimated best number of trees
+      
+        # compactly print the first and last trees for curiosity
+        print(pretty.gbm.tree(mogbm,1))
+        print(pretty.gbm.tree(mogbm,mogbm$n.trees))
+        #Plot the tree in countour
+        #plot.gbm(mogbm,2,n.trees=1) #Sex
+        #plot.gbm(mogbm,2:3,n.trees=1) # 
+        #plot.gbm(mogbm,3:4,n.trees=1) # 
+        
+        for (i in 1:length(trainCols) ) {
+            plot.gbm(mogbm, i, best.iter)
+        }
     }
-    
     if (LOAD_DATA) {
         load(file=paste(RELOAD_PATH,"Yhattest.pred",sep="/"))
         load(file=paste(RELOAD_PATH,"Yhattrain.pred",sep="/"))
@@ -259,7 +263,7 @@ RELOAD_PATH <- "submissions/submit4"
 train <- read.table(file="input/train.csv",header=TRUE, sep=",", na.strings=c("NA","NaN", " "))
 feature <- read.table(file="input/features.csv",header=TRUE, sep=",", na.strings=c("NA","NaN", " "))
 
-ind <- sample(length(train[,1]),25000,FALSE)
+ind <- sample(length(train[,1]),200000,FALSE)
 train_df <- tbl_df(train[ind,1:4])
 #train_df <- tbl_df(train[,1:4])
 feature_df <- tbl_df(feature)
@@ -381,7 +385,7 @@ YtrainRMLSE <- Y
 YtrainRMLSE[is.na(YtrainRMLSE)] <- 0.0
 rmsle <- computeRMSLE(YhattrainRMLSE, YtrainRMLSE)
 rmsle
-wmae <-  computeWMAE(YhattrainRMLSE, YtrainRMLSE, XtrainClean[,3])
+wmae <-  computeWMAE(YhattrainRMLSE, YtrainRMLSE, X[,3])
 wmae
 
 ##Absolute error sorted, for graphing as required
