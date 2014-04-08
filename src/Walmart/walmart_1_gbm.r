@@ -114,7 +114,7 @@ cleanInputAsNumeric <- function(X) {
 
 predictGBM <- function(Y, XtrainClean, XtestClean, trainCols) {
     ## GBM Parameters
-    ntrees <-  30
+    ntrees <-  3000
     depth <- 20
     minObs <- 5
     shrink <- 0.002
@@ -174,6 +174,8 @@ predictGBM <- function(Y, XtrainClean, XtestClean, trainCols) {
         for (i in 1:length(trainCols) ) {
             plot.gbm(mogbm, i, best.iter)
         }
+    } else {
+        print(summary(mogbm, n.trees=ntrees))
     }
     if (LOAD_DATA) {
         load(file=paste(RELOAD_PATH,"Yhattest.pred",sep="/"))
@@ -186,7 +188,7 @@ predictGBM <- function(Y, XtrainClean, XtestClean, trainCols) {
     }
     end = date()
     
-    Yhattrain <- predict.gbm(mo1gbm, newdata=XtrainClean[trainCols], n.trees = ntrees, type="response") 
+    Yhattrain <- predict.gbm(mogbm, newdata=XtrainClean[trainCols], n.trees = ntrees, type="response") 
     end = date()
     end
      
@@ -263,7 +265,7 @@ RELOAD_PATH <- "submissions/submit4"
 train <- read.table(file="input/train.csv",header=TRUE, sep=",", na.strings=c("NA","NaN", " "))
 feature <- read.table(file="input/features.csv",header=TRUE, sep=",", na.strings=c("NA","NaN", " "))
 
-ind <- sample(length(train[,1]),200000,FALSE)
+ind <- sample(length(train[,1]),421570,FALSE)
 train_df <- tbl_df(train[ind,1:4])
 #train_df <- tbl_df(train[,1:4])
 feature_df <- tbl_df(feature)
@@ -304,6 +306,7 @@ ret = predictGBM(Y, X, XtestClean, trainCols)
 Yhattrain = exp(ret[[1]])
 Yhattest = exp(ret[[2]])
 mogbm = ret[[3]]
+
 histogram(Yhattrain)
 histogram(exp(Y))
 YhattrainRMLSE <- Yhattrain
