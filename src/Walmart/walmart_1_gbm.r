@@ -15,28 +15,40 @@ require(dplyr)
 
 
 
-# Give it a the estimator and real value.  Will return the RMLSE calculation. This is on training set 
-# Obviously. 
-# e
-computeRMSLE <- function(Ysimulated, Yreal) {
+# Mean Average Error, Weighted
+# https://www.kaggle.com/c/walmart-recruiting-store-sales-forecasting/details/evaluation
+computeWMAE <- function(Ysimulated, Yreal, XHoliday) {
 	
-	#zero out negative elements  
-	Ysimulated <- ifelse(Ysimulated<0,0,Ysimulated)
-	Yreal <- ifelse(Yreal<0,0,Yreal)
-	
-	#initialize values
-	rmsle <- 0.0
-	n <- 0
-	
-	#perform calculations
-	Ysimulated <- log(Ysimulated + 1)
-	Yreal <- log(Yreal + 1)
-		
-	#for vectors, n is the length of the vector
+	XWeight <- ifelse(XHoliday==TRUE,5,1)
+	XWeight <- XWeight/sum(XWeight)
+		 
 	n <- length(Yreal)
-	rmsle <- sqrt(sum((Ysimulated - Yreal)^2)/n)
+	wmae <- sum(XWeight %*% abs(Ysimulated - Yreal))
 	
-	return (rmsle)
+	return (wmae)
+}
+
+
+
+computeRMSLE <- function(Ysimulated, Yreal) {
+  
+  #zero out negative elements  
+  Ysimulated <- ifelse(Ysimulated<0,0,Ysimulated)
+  Yreal <- ifelse(Yreal<0,0,Yreal)
+  
+  #initialize values
+  rmsle <- 0.0
+  n <- 0
+  
+  #perform calculations
+  Ysimulated <- log(Ysimulated + 1)
+  Yreal <- log(Yreal + 1)
+  
+  #for vectors, n is the length of the vector
+  n <- length(Yreal)
+  rmsle <- sqrt(sum((Ysimulated - Yreal)^2)/n)
+  
+  return (rmsle)
 }
 
 
@@ -168,14 +180,16 @@ Y[is.na(Y)] <- 0.0
 gdata <- cbind(Y,X)
 
 
-mo1gbm <- gbm(Y~. ,
-			        data=gdata,
-              distribution = "gaussian",
-              n.trees = ntrees,
-              shrinkage = shrink,
-              cv.folds = folds, 
-			        verbose = TRUE)
-mogbm = mo1gbm
+# mo1gbm <- gbm(Y~. ,
+# 			        data=gdata,
+#               distribution = "gaussian",
+#               n.trees = ntrees,
+#               shrinkage = shrink,
+#               cv.folds = folds, 
+# 			        verbose = TRUE)
+# mogbm = mo1gbm
+#save(mogbm, file="mogbm.gbm")
+load(file="submissions/submit4/mogbm.gbm")
 
 #fit the model
 # mo2gbm <- gbm.fit(y=Y, x=X,
@@ -193,13 +207,14 @@ sqrt(min(mogbm$cv.error))
 which.min(mogbm$cv.error)
 
 Yhattest[,2] <- predict.gbm(mogbm, newdata=XtestClean, n.trees = ntrees)
-Yhattrain[,2] <- predict.gbm(mogbm, newdata=XtrainClean, n.trees = ntrees)
- 	
+Yhattrain[,2] <- predict.gbm(mogbm, newdata=XtrainClean, n.trees = ntrees) 	
 end = date()
 end
 
-Yhattest[,1] <- seq(1,ntestrows,1)
-Yhattrain[,1] <- seq(1,ntrainrows,1)
+#Yhattest[,1] <- seq(1,ntestrows,1)
+#Yhattrain[,1] <- seq(1,ntrainrows,1)
+#save(Yhattest, file="Yhattest.pred")
+#save(Yhattrain, file="Yhattrain.pred")
 
 
 ## Calculate total training error
@@ -208,10 +223,17 @@ YtrainRMLSE <- as.matrix(training[,1])
 YtrainRMLSE[is.na(YtrainRMLSE)] <- 0.0
 rmsle <- computeRMSLE(YhattrainRMLSE, YtrainRMLSE)
 rmsle
+wmae <-  computeWMAE(YhattrainRMLSE, YtrainRMLSE, XtrainClean[,3])
+wmae
 
-## Is there some set of data, where the RMSLE is different
+Yerror = abs(YhattrainRMLSE -  YtrainRMLSE)
+Yerror_all = cbind(Yerror, training)
+sorted_error = Yerror_all[ order(-Yerror_all$Yerror), ]
 
-#1. For campaigns from various overallsales (historgram)
+ggplot(sorted_error, aes(x=sorted_error$Date, y=max(Yerror), colour=supp)) + 
+  geom_errorbar(aes(ymin=max(Yerror)-se, ymax=max(Yerror)+se), width=.1) +
+  geom_line() +
+  geom_point()
 
 
 #2. 
@@ -237,8 +259,9 @@ write.csv(Yhattest_final, "walmart_1_jag_gbm.csv", row.names=FALSE)
 # Finally the 'diff' returns where its not a diagonol
 # TODO return the exact columnnames
 
-trainingMatrix = as.matrix( training )
-trainingMatrix = cleanInputAsNumeric( training)
+train_mat <- cbind(Y,XtrainClean)
+trainingMatrix = as.matrix( train_mat )
+trainingMatrix = cleanInputAsNumeric( train_mat)
 trainingMatrix[is.na(trainingMatrix)] <- 0.0
 
 corr <- cor(trainingMatrix)
@@ -246,10 +269,36 @@ idx <- which(corr > 0.9999, arr.ind = TRUE)
 idxCopy <- idx[ apply(idx, 1, diff) > 0, ]
 
 
-# 2.
-#
-#
-#
+# 2. Plot error
+# Output data
+library(ggplot2)
+library(calibrate)
+library(grid)
+library(stats)
+
+stats <- function(x) {
+  ans <- boxplot.stats(x)
+  data.frame(ymin = ans$conf[1], ymax = ans$conf[2])
+}
+
+vgrid <- function(x,y) {
+  viewport(layout.pos.row = x, layout.pos.col = y)
+}
 
 
+
+nCol = 15
+start = 2
+pushViewport(viewport(layout=grid.layout(1,nCol)))
+for(iCol in start:(nCol+start-1) ){
+  
+  name = names(train_mat)[iCol]
+  print(name)
+  data_col = train_mat[,iCol]
+  p <- ggplot(data=train_mat, aes(name, data_col )) + 
+    geom_boxplot(notch = TRUE, notchwidth = 0.5) +
+    stat_summary(fun.data = stats, geom = "linerange", colour = "skyblue", size = 5)
+  q = list(p)
+  print(q[[1]], vp=vgrid(1, iCol-start+1))
+}
 
