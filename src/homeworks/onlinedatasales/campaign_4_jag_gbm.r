@@ -124,8 +124,8 @@ XtestClean = cleanInputDataForGBM(Xtest)
 
 
 ## GBM Parameters
-ntrees <- 6000
-depth <- 5
+ntrees <- 1000
+depth <- 3
 minObs <- 10
 shrink <- 0.001
 folds <- 10

@@ -114,9 +114,9 @@ cleanInputAsNumeric <- function(X) {
 
 predictGBM <- function(Y, XtrainClean, XtestClean, trainCols) {
     ## GBM Parameters
-    ntrees <-  3000
-    depth <- 20
-    minObs <- 5
+    ntrees <-  
+    depth <- 5
+    minObs <- 2
     shrink <- 0.002
     folds <- 5
     
@@ -125,6 +125,7 @@ predictGBM <- function(Y, XtrainClean, XtestClean, trainCols) {
     
     X = cbind(XtrainClean[trainCols] )
     gdata <- cbind(Y,X)
+    CV = TRUE
     
     if(LOAD_DATA) {
         load(file=paste(RELOAD_PATH,"mogbm.gbm",sep="/"))
@@ -251,12 +252,15 @@ predictRF <- function(Y, XtrainClean, XtestClean, trainCols) {
 # 
 # Predict for sales by dept.  Inner join store/days.  Use left join once more sophiticated
 #
+# Friday and Thursday
 
 ###############################################
 ##  Configuration variable
+## IF LOAD == TRUE, make sure your X samples_taken
+## Is set to whatever model was built with!!
 ###############################################
-LOAD_DATA <-FALSE
-RELOAD_PATH <- "submissions/submit4"
+LOAD_DATA <-TRUE
+RELOAD_PATH <- "submissions/submit7"
 
 
 ###############################################
@@ -265,7 +269,8 @@ RELOAD_PATH <- "submissions/submit4"
 train <- read.table(file="input/train.csv",header=TRUE, sep=",", na.strings=c("NA","NaN", " "))
 feature <- read.table(file="input/features.csv",header=TRUE, sep=",", na.strings=c("NA","NaN", " "))
 
-ind <- sample(length(train[,1]),421570,FALSE)
+samples_taken = 421570
+ind <- sample(length(train[,1]),samples_taken,FALSE)
 train_df <- tbl_df(train[ind,1:4])
 #train_df <- tbl_df(train[,1:4])
 feature_df <- tbl_df(feature)
@@ -350,7 +355,7 @@ X$Qaunt_MarkDown5[is.na(X$Qaunt_MarkDown5)] = 0
 
 YY = cbind( Y,X )
 fitX <- lm(Y ~ X)
-fitX <- lm(Y ~. , data = X)
+#fitX <- lm(Y ~. , data = X)
 abline(fitX, lty=2, lwd=2, col="red")
 summary(fitX)
 plot(1:nrow(fitX$fitted),fitX$fitted)
